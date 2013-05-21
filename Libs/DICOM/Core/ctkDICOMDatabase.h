@@ -175,10 +175,10 @@ public:
   void setTagsToPrecache(const QStringList tags);
   const QStringList tagsToPrecache();
 
-  /// Insert into the database if not already exsting.
+  /// Insert into the database if not already existing.
   /// @param dataset The dataset to store into the database. Usually, this is
   ///                is a complete DICOM object, like a complete image. However
-  ///                the database also inserts partial objects, like studyl
+  ///                the database also inserts partial objects, like study
   ///                information to the database, even if no image data is
   ///                contained. This can be helpful to store results from
   ///                querying the PACS for patient/study/series or image
@@ -198,6 +198,9 @@ public:
                             bool storeFile = true, bool generateThumbnail = true,
                             bool createHierarchy = true,
                             const QString& destinationDirectoryName = QString() );
+
+  /// Update the fields in the database that are used for displaying information from information stored in the tag-cache
+  void updateDisplayedFields();
 
   /// Reset cached item IDs to make sure previous
   /// inserts do not interfere with upcoming insert operations.
@@ -253,6 +256,8 @@ public:
   Q_INVOKABLE bool initializeTagCache ();
   /// Return the value of a cached tag
   Q_INVOKABLE QString cachedTag (const QString sopInstanceUID, const QString tag);
+  /// Return the list of all cached tags and values for the specified sopInstanceUID. Returns with empty string if the tag is not present in the cache.
+  Q_INVOKABLE void getCachedTags(const QString sopInstanceUID, QMap<QString, QString> &cachedTags);
   /// Insert an instance tag's value into to the cache
   Q_INVOKABLE bool cacheTag (const QString sopInstanceUID, const QString tag, const QString value);
   /// Insert lists of tags into the cache as a batch query operation
@@ -289,8 +294,6 @@ Q_SIGNALS:
 
 protected:
   QScopedPointer<ctkDICOMDatabasePrivate> d_ptr;
-
-
 
 private:
   Q_DECLARE_PRIVATE(ctkDICOMDatabase);

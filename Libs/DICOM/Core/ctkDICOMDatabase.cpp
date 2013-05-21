@@ -41,6 +41,8 @@
 
 #include "ctkLogger.h"
 
+#include "ctkDICOMDisplayedFieldGenerator.h"
+
 // DCMTK includes
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
@@ -61,12 +63,15 @@
 static ctkLogger logger("org.commontk.dicom.DICOMDatabase" );
 //------------------------------------------------------------------------------
 
-// Flag for tag cache to avoid repeated serarches for
+// Flag for tag cache to avoid repeated searches for
 // tags that do no exist.
 static QString TagNotInInstance("__TAG_NOT_IN_INSTANCE__");
 // Flag for tag cache indicating that the value
 // really is the empty string
 static QString ValueIsEmptyString("__VALUE_IS_EMPTY_STRING__");
+// Separator character for table and field names to be used in
+// display rules manager
+static QString TableFieldSeparator(":");
 
 //------------------------------------------------------------------------------
 class ctkDICOMDatabasePrivate
@@ -109,6 +114,24 @@ public:
   ///
   void removeBackupFileList();
 
+  /// TODO
+  void createDisplayFieldsCache( QMap<QString, QMap<QString, QString> > &displayFieldsMapSeries,
+                              QMap<QString, QMap<QString, QString> > &displayFieldsMapStudy,
+                              QVector<QMap<QString, QString> > &displayFieldsVectorPatient );
+
+  /// TODO
+  void applyDisplayFieldsChanges( QMap<QString, QMap<QString, QString> > &displayFieldsMapSeries,
+                                  QMap<QString, QMap<QString, QString> > &displayFieldsMapStudy,
+                                  QVector<QMap<QString, QString> > &displayFieldsVectorPatient );
+
+  /// TODO
+  int getDisplayPatientFieldsIndex(QString patientName, QString patientID, QVector<QMap<QString, QString> > &displayFieldsVectorPatient);
+
+  /// TODO
+  QString getDisplayStudyFieldsKey(QString studyInstanceUID, QMap<QString, QMap<QString, QString> > &displayFieldsMapStudy);
+
+  /// TODO
+  QString getDisplaySeriesFieldsKey(QString seriesInstanceUID, QMap<QString, QMap<QString, QString> > &displayFieldsMapSeries);
 
   ///
   /// get all Filename values from table
@@ -121,6 +144,8 @@ public:
   QMap<QString, QString> LoadedHeader;
 
   ctkDICOMAbstractThumbnailGenerator* thumbnailGenerator;
+
+  ctkDICOMDisplayedFieldGenerator DisplayedFieldGenerator;
 
   /// these are for optimizing the import of image sequences
   /// since most information are identical for all slices
@@ -337,6 +362,8 @@ void ctkDICOMDatabase::openDatabase(const QString databaseFile, const QString& c
     {
     this->initializeTagCache();
     }
+  
+  setTagsToPrecache(d->DisplayedFieldGenerator.getRequiredTags());
 }
 
 //------------------------------------------------------------------------------
@@ -503,7 +530,7 @@ QString ctkDICOMDatabase::schemaVersion()
   //   so that the ctkDICOMDatabasePrivate::filenames method
   //   still works.
   //
-  return QString("0.5.3");
+  return QString("0.6.0");
 };
 
 //------------------------------------------------------------------------------
@@ -985,7 +1012,7 @@ QString ctkDICOMDatabase::fileValue(const QString fileName, const unsigned short
   // - if so, are we looking for a group/element that is past the last one
   //   accessed
   //   -- if so, keep looking for the requested group/element
-  //   -- if not, start again from the begining
+  //   -- if not, start again from the beginning
 
   QString tag = this->groupElementToTag(group, element);
   QString sopInstanceUID = this->instanceForFile(fileName);
@@ -1250,7 +1277,7 @@ void ctkDICOMDatabasePrivate::insertSeries(const ctkDICOMItem& ctkDataset, QStri
       insertSeriesStatement.bindValue ( 13, static_cast<int>(temporalPosition) );
       if ( !insertSeriesStatement.exec() )
         {
-          logger.error ( "Error executing statament: "
+          logger.error ( "Error executing statement: "
                          + insertSeriesStatement.lastQuery()
                          + " Error: " + insertSeriesStatement.lastError().text() );
           LastSeriesInstanceUID = "";
@@ -1426,7 +1453,7 @@ void ctkDICOMDatabasePrivate::insert( const ctkDICOMItem& ctkDataset, const QStr
       return;
     }
 
-  // store the file if the database is not in memomry
+  // store the file if the database is not in memory
   // TODO: if we are called from insert(file) we
   // have to do something else
   //
@@ -1715,6 +1742,10 @@ bool ctkDICOMDatabase::cleanup()
   seriesCleanup.exec("DELETE FROM Series WHERE ( SELECT COUNT(*) FROM Images WHERE Images.SeriesInstanceUID = Series.SeriesInstanceUID ) = 0;");
   seriesCleanup.exec("DELETE FROM Studies WHERE ( SELECT COUNT(*) FROM Series WHERE Series.StudyInstanceUID = Studies.StudyInstanceUID ) = 0;");
   seriesCleanup.exec("DELETE FROM Patients WHERE ( SELECT COUNT(*) FROM Studies WHERE Studies.PatientsUID = Patients.UID ) = 0;");
+
+  seriesCleanup.exec("DELETE FROM DisplaySeries WHERE ( SELECT COUNT(*) FROM Images WHERE Images.SeriesInstanceUID = DisplaySeries.SeriesInstanceUID ) = 0;");
+  seriesCleanup.exec("DELETE FROM DisplayStudies WHERE ( SELECT COUNT(*) FROM DisplaySeries WHERE DisplaySeries.StudyInstanceUID = DisplayStudies.StudyInstanceUID ) = 0;");
+  seriesCleanup.exec("DELETE FROM DisplayPatients WHERE ( SELECT COUNT(*) FROM DisplayStudies WHERE DisplayStudies.PatientsUID = DisplayPatients.UID ) = 0;");
   return true;
 }
 
@@ -1867,6 +1898,37 @@ QString ctkDICOMDatabase::cachedTag(const QString sopInstanceUID, const QString 
 }
 
 //------------------------------------------------------------------------------
+void ctkDICOMDatabase::getCachedTags(const QString sopInstanceUID, QMap<QString, QString> &cachedTags)
+{
+  Q_D(ctkDICOMDatabase);
+  cachedTags.clear();
+  if ( !this->tagCacheExists() )
+    {
+    if ( !this->initializeTagCache() )
+      {
+      // cache is empty
+      return;
+      }
+    }
+  QSqlQuery selectValue( d->TagCacheDatabase );
+  selectValue.prepare( "SELECT Tag, Value FROM TagCache WHERE SOPInstanceUID = :sopInstanceUID" );
+  selectValue.bindValue(":sopInstanceUID",sopInstanceUID);
+  d->loggedExec(selectValue);
+  QString tag;
+  QString value;
+  while (selectValue.next())
+    {
+    tag = selectValue.value(0).toString();
+    value = selectValue.value(1).toString();
+    if (value == TagNotInInstance || value == ValueIsEmptyString)
+    {
+      value = QString("");
+    }
+    cachedTags.insert(tag, value);
+    }
+}
+
+//------------------------------------------------------------------------------
 bool ctkDICOMDatabase::cacheTag(const QString sopInstanceUID, const QString tag, const QString value)
 {
   QStringList sopInstanceUIDs, tags, values;
@@ -1904,4 +1966,366 @@ bool ctkDICOMDatabase::cacheTags(const QStringList sopInstanceUIDs, const QStrin
   insertTags.addBindValue(tags);
   insertTags.addBindValue(values);
   return d->loggedExecBatch(insertTags);
+}
+
+//------------------------------------------------------------------------------
+void ctkDICOMDatabase::updateDisplayedFields()
+{
+  Q_D(ctkDICOMDatabase);
+
+  //TODO: Document difference between PatientIndex (only internally in the cache) and UID and PatientsUID
+  //TODO: Test with separate insertions into the same patient/study/series
+
+  // Get the files for which the display fields have not been created yet (DisplayedFieldsUpdatedTimestamp is NULL)
+  //TODO: handle cases when the values actually changed; now we only do insertion in the database
+  QSqlQuery newFilesQuery(d->Database);
+  d->loggedExec(newFilesQuery,QString("SELECT SOPInstanceUID, SeriesInstanceUID FROM Images WHERE DisplayedFieldsUpdatedTimestamp IS NULL;"));
+
+  // Populate display fields maps from the current display tables
+  QMap<QString /*SeriesInstanceUID*/, QMap<QString /*DisplayField*/, QString /*Value*/> > displayFieldsMapSeries;
+  QMap<QString /*StudyInstanceUID*/, QMap<QString /*DisplayField*/, QString /*Value*/> > displayFieldsMapStudy;
+  QVector<QMap<QString /*DisplayField*/, QString /*Value*/> > displayFieldsVectorPatient; // The index in the vector is the internal patient UID
+
+  d->DisplayedFieldGenerator.setDatabase(this);
+
+  // Get display names for newly added files and add them into the display tables
+  while (newFilesQuery.next())
+  {
+    QString sopInstanceUID = newFilesQuery.value(0).toString();
+    QString seriesInstanceUID = newFilesQuery.value(1).toString();
+    QMap<QString, QString> cachedTags;
+    getCachedTags(sopInstanceUID, cachedTags);
+
+    //TODO: Check for validity of the returned index and keys
+    int displayFieldsIndexForCurrentPatient = d->getDisplayPatientFieldsIndex(
+        cachedTags[ctkDICOMItem::TagKeyStripped(DCM_PatientName)], cachedTags[ctkDICOMItem::TagKeyStripped(DCM_PatientID)], displayFieldsVectorPatient );
+    QMap<QString, QString> displayFieldsForCurrentPatient = displayFieldsVectorPatient[ displayFieldsIndexForCurrentPatient ];
+
+    QString displayFieldsKeyForCurrentStudy = d->getDisplayStudyFieldsKey( cachedTags[ctkDICOMItem::TagKeyStripped(DCM_StudyInstanceUID)], displayFieldsMapStudy );
+    QMap<QString, QString> displayFieldsForCurrentStudy = displayFieldsMapStudy[ displayFieldsKeyForCurrentStudy ];
+    displayFieldsForCurrentStudy["PatientIndex"] = QString::number(displayFieldsIndexForCurrentPatient);
+
+    QString displayFieldsKeyForCurrentSeries = d->getDisplaySeriesFieldsKey( seriesInstanceUID, displayFieldsMapSeries );
+    QMap<QString, QString> displayFieldsForCurrentSeries = displayFieldsMapSeries[ displayFieldsKeyForCurrentSeries ];
+
+    // Do the update of the display fields using the roles
+    d->DisplayedFieldGenerator.updateDisplayFieldsForInstance(sopInstanceUID,
+      displayFieldsForCurrentSeries, displayFieldsForCurrentStudy, displayFieldsForCurrentPatient);
+
+    displayFieldsMapSeries[ seriesInstanceUID ] = displayFieldsForCurrentSeries;
+    displayFieldsMapStudy[ displayFieldsKeyForCurrentStudy ] = displayFieldsForCurrentStudy;
+    displayFieldsVectorPatient[ displayFieldsIndexForCurrentPatient ] = displayFieldsForCurrentPatient;
+  }
+
+  // Update/insert the display values
+  if (displayFieldsMapSeries.count() > 0)
+  {
+    d->applyDisplayFieldsChanges(displayFieldsMapSeries, displayFieldsMapStudy, displayFieldsVectorPatient);
+  }
+}
+
+//------------------------------------------------------------------------------
+int ctkDICOMDatabasePrivate::getDisplayPatientFieldsIndex(QString patientName, QString patientID, QVector<QMap<QString, QString> > &displayFieldsVectorPatient)
+{
+  // Look for the patient in the display fields cache first
+  for (int patientIndex=0; patientIndex < displayFieldsVectorPatient.size(); ++patientIndex)
+  {
+    QMap<QString, QString> currentPatient = displayFieldsVectorPatient[patientIndex];
+    if ( !currentPatient["PatientID"].compare(patientID)
+      && !currentPatient["PatientName"].compare(patientName) )
+    {
+      return patientIndex;
+    }
+  }
+
+  // Look for the patient in the display database
+  QSqlQuery displayPatientsQuery(Database);
+  displayPatientsQuery.prepare( "SELECT * FROM DisplayPatients WHERE PatientID = :patientID AND PatientName = :patientName ;" );
+  displayPatientsQuery.bindValue(":patientID",patientID);
+  displayPatientsQuery.bindValue(":patientName",patientName);
+  if (!displayPatientsQuery.exec())
+  {
+    logger.error("SQLITE ERROR: " + displayPatientsQuery.lastError().driverText());
+    return -1;
+  }
+  //TODO: sanity check for result size
+  if (displayPatientsQuery.next())
+  {
+    QSqlRecord patientRecord = displayPatientsQuery.record();
+    QMap<QString, QString> patientFieldsMap;
+    for (int fieldIndex=0; fieldIndex<patientRecord.count(); ++fieldIndex)
+    {
+      patientFieldsMap.insert(patientRecord.fieldName(fieldIndex), patientRecord.value(fieldIndex).toString());
+    }
+    // The index of the patient represents its UID for this update of the display tables
+    int patientIndex = displayFieldsVectorPatient.size();
+    patientFieldsMap["PatientIndex"] = patientIndex; // New UID is generated for internal temporal use!
+    displayFieldsVectorPatient.append(patientFieldsMap);
+    return patientIndex;
+  }
+
+  // Insert empty patient if did not exist (to have a UID)
+  QMap<QString, QString> newPatient;
+  int newPatientIndex = displayFieldsVectorPatient.size();
+  newPatient["PatientIndex"] = QString::number(newPatientIndex);
+  newPatient["PatientID"] = patientID;
+  newPatient["PatientName"] = patientName;
+  displayFieldsVectorPatient.append(newPatient);
+  return newPatientIndex;
+}
+
+//------------------------------------------------------------------------------
+QString ctkDICOMDatabasePrivate::getDisplayStudyFieldsKey(QString studyInstanceUID, QMap<QString, QMap<QString, QString> > &displayFieldsMapStudy)
+{
+  // Look for the study in the display fields cache first
+  foreach (QString currentStudyInstanceUid, displayFieldsMapStudy.keys())
+  {
+    if ( !displayFieldsMapStudy[currentStudyInstanceUid]["StudyInstanceUID"].compare(studyInstanceUID) )
+    {
+      return studyInstanceUID;
+    }
+  }
+
+  // Look for the study in the display database
+  QSqlQuery displayStudiesQuery(Database);
+  displayStudiesQuery.prepare( QString("SELECT StudyInstanceUID FROM DisplayStudies WHERE StudyInstanceUID = :studyInstanceUID ;") );
+  displayStudiesQuery.bindValue(":studyInstanceUID",studyInstanceUID);
+  if (!displayStudiesQuery.exec())
+  {
+    logger.error("SQLITE ERROR: " + displayStudiesQuery.lastError().driverText());
+    return QString();
+  }
+  //TODO: sanity check for result size
+  if (displayStudiesQuery.next())
+  {
+    QSqlRecord studyRecord = displayStudiesQuery.record();
+    QMap<QString, QString> studyFieldsMap;
+    for (int fieldIndex=0; fieldIndex<studyRecord.count(); ++fieldIndex)
+    {
+      studyFieldsMap.insert(studyRecord.fieldName(fieldIndex), studyRecord.value(fieldIndex).toString());
+    }
+    return studyInstanceUID;
+  }
+
+  // Insert empty study if did not exist
+  QMap<QString, QString> newStudy;
+  newStudy["StudyInstanceUID"] = studyInstanceUID;
+  displayFieldsMapStudy.insert(studyInstanceUID, newStudy);
+  return studyInstanceUID;
+}
+
+//------------------------------------------------------------------------------
+QString ctkDICOMDatabasePrivate::getDisplaySeriesFieldsKey(QString seriesInstanceUID, QMap<QString, QMap<QString, QString> > &displayFieldsMapSeries)
+{
+  // Look for the series in the display fields cache first
+  foreach (QString currentSeriesInstanceUid, displayFieldsMapSeries.keys())
+  {
+    if ( !displayFieldsMapSeries[currentSeriesInstanceUid]["SeriesInstanceUID"].compare(seriesInstanceUID) )
+    {
+      return seriesInstanceUID;
+    }
+  }
+
+  // Look for the series in the display database
+  QSqlQuery displaySeriesQuery(Database);
+  displaySeriesQuery.prepare( QString("SELECT SeriesInstanceUID FROM DisplaySeries WHERE SeriesInstanceUID = :seriesInstanceUID ;") );
+  displaySeriesQuery.bindValue(":seriesInstanceUID",seriesInstanceUID);
+  if (!displaySeriesQuery.exec())
+  {
+    logger.error("SQLITE ERROR: " + displaySeriesQuery.lastError().driverText());
+    return QString();
+  }
+  //TODO: sanity check for result size
+  if (displaySeriesQuery.next())
+  {
+    QSqlRecord seriesRecord = displaySeriesQuery.record();
+    QMap<QString, QString> seriesFieldsMap;
+    for (int fieldIndex=0; fieldIndex<seriesRecord.count(); ++fieldIndex)
+    {
+      seriesFieldsMap.insert(seriesRecord.fieldName(fieldIndex), seriesRecord.value(fieldIndex).toString());
+    }
+    return seriesInstanceUID;
+  }
+
+  // Insert empty series if did not exist
+  QMap<QString, QString> newSeries;
+  newSeries["SeriesInstanceUID"] = seriesInstanceUID;
+  displayFieldsMapSeries.insert(seriesInstanceUID, newSeries);
+  return seriesInstanceUID;
+}
+
+//------------------------------------------------------------------------------
+void ctkDICOMDatabasePrivate::applyDisplayFieldsChanges( QMap<QString, QMap<QString, QString> > &displayFieldsMapSeries,
+                                                         QMap<QString, QMap<QString, QString> > &displayFieldsMapStudy,
+                                                         QVector<QMap<QString, QString> > &displayFieldsVectorPatient )
+{
+  QMap<int, int> patientIndexToPatientUidMap;
+
+  for (int patientIndex=0; patientIndex < displayFieldsVectorPatient.size(); ++patientIndex)
+  {
+    int patientUID = -1;
+
+    // Insert row into DisplayPatients if does not exist
+    QMap<QString, QString> currentPatient = displayFieldsVectorPatient[patientIndex];
+
+    QSqlQuery displayPatientsQuery(Database);
+    displayPatientsQuery.prepare( "SELECT * FROM DisplayPatients WHERE PatientID=:patientID AND PatientName=:patientName ;" );
+    displayPatientsQuery.bindValue(":patientID",currentPatient["PatientID"]);
+    displayPatientsQuery.bindValue(":patientName",currentPatient["PatientName"]);
+    if (!displayPatientsQuery.exec())
+    {
+      logger.error("SQLITE ERROR: " + displayPatientsQuery.lastError().driverText());
+      return;
+    }
+    if (!displayPatientsQuery.next())
+    {
+      QString displayPatientsFieldList, displayPatientsValueList;
+      foreach (QString tagName, currentPatient.keys())
+      {
+        if (tagName.compare("PatientIndex") && tagName.compare("UID"))
+        {
+          displayPatientsFieldList.append( tagName + ", " );
+          displayPatientsValueList.append( currentPatient[tagName].isEmpty() ? "NULL, " : "'" + currentPatient[tagName] + "', " );
+        }
+      }
+      // Trim the separators from the end
+      displayPatientsFieldList = displayPatientsFieldList.left(displayPatientsFieldList.size() - 2);
+      displayPatientsValueList = displayPatientsValueList.left(displayPatientsValueList.size() - 2);
+
+      QSqlQuery insertDisplayPatientStatement(Database);
+      QString insertDisplayPatientStatementString = 
+        QString("INSERT INTO DisplayPatients (%1) VALUES (%2);").arg(displayPatientsFieldList).arg(displayPatientsValueList);
+      loggedExec(insertDisplayPatientStatement, insertDisplayPatientStatementString);
+
+      // Get new UID
+      patientUID = insertDisplayPatientStatement.lastInsertId().toInt();
+    }
+    else // Update if it already exists
+    {
+      QString displayPatientsFieldUpdateList;
+      foreach (QString tagName, currentPatient.keys())
+      {
+        if (tagName.compare("PatientIndex"))
+        {
+          displayPatientsFieldUpdateList.append( tagName + "='" + (currentPatient[tagName].isEmpty() ? "NULL" : currentPatient[tagName]) + "', " );
+        }
+      }
+      // Trim the separators from the end
+      displayPatientsFieldUpdateList = displayPatientsFieldUpdateList.left(displayPatientsFieldUpdateList.size() - 2);
+
+      QSqlRecord patientRecord = displayPatientsQuery.record();
+      patientUID = patientRecord.value("UID").toInt();
+
+      QSqlQuery updateDisplayPatientStatement(Database);
+      QString updateDisplayPatientStatementString = 
+        QString("UPDATE DisplayPatients SET %1 WHERE UID='%2';").arg(displayPatientsFieldUpdateList).arg(patientUID);
+      loggedExec(updateDisplayPatientStatement, updateDisplayPatientStatementString);
+    }
+
+    //TODO check if patientUID is not -1
+    patientIndexToPatientUidMap[patientIndex] = patientUID;
+  }
+
+  foreach (QString currentStudyInstanceUid, displayFieldsMapStudy.keys())
+  {
+    // Insert row into DisplayStudies if does not exist
+    QMap<QString, QString> currentStudy = displayFieldsMapStudy[currentStudyInstanceUid];
+    QSqlQuery displayStudiesQuery(QString("SELECT StudyInstanceUID FROM DisplayStudies WHERE StudyInstanceUID='%1' ;").arg(currentStudyInstanceUid), Database);
+    if (!displayStudiesQuery.exec())
+    {
+      logger.error("SQLITE ERROR: " + displayStudiesQuery.lastError().driverText());
+      return;
+    }
+    if (!displayStudiesQuery.next())
+    {
+      QString displayStudiesFieldList, displayStudiesValueList;
+      foreach (QString tagName, currentStudy.keys())
+      {
+        if (!tagName.compare("PatientIndex"))
+        {
+          displayStudiesFieldList.append( "PatientsUID, " );
+          displayStudiesValueList.append( "'" + QString::number(patientIndexToPatientUidMap[currentStudy["PatientIndex"].toInt()]) + "', " );
+        }
+        else if (tagName.compare("PatientsUID"))
+        {
+          displayStudiesFieldList.append( tagName + ", " );
+          displayStudiesValueList.append( currentStudy[tagName].isEmpty() ? "NULL, " : "'" + currentStudy[tagName] + "', " );
+        }
+      }
+      // Trim the separators from the end
+      displayStudiesFieldList = displayStudiesFieldList.left(displayStudiesFieldList.size() - 2);
+      displayStudiesValueList = displayStudiesValueList.left(displayStudiesValueList.size() - 2);
+
+      QSqlQuery insertDisplayStudyStatement(Database);
+      QString insertDisplayStudyStatementString = 
+        QString("INSERT INTO DisplayStudies (%1) VALUES (%2);").arg(displayStudiesFieldList).arg(displayStudiesValueList);
+      loggedExec(insertDisplayStudyStatement, insertDisplayStudyStatementString);
+    }
+    else // Update if it already exists
+    {
+      QString displayStudiesFieldUpdateList;
+      foreach (QString tagName, currentStudy.keys())
+      {
+        if (!tagName.compare("PatientIndex"))
+        {
+          displayStudiesFieldUpdateList.append( "PatientsUID=" + QString::number(patientIndexToPatientUidMap[currentStudy["PatientIndex"].toInt()]) + ", " );
+        }
+        else
+        {
+          displayStudiesFieldUpdateList.append( tagName + "='" + (currentStudy[tagName].isEmpty() ? "NULL" : currentStudy[tagName]) + "', " );
+        }
+      }
+      // Trim the separators from the end
+      displayStudiesFieldUpdateList = displayStudiesFieldUpdateList.left(displayStudiesFieldUpdateList.size() - 2);
+
+      QSqlQuery updateDisplayStudyStatement(Database);
+      QString updateDisplayStudyStatementString = 
+        QString("UPDATE DisplayStudies SET %1 WHERE StudyInstanceUID='%2';").arg(displayStudiesFieldUpdateList).arg(currentStudy["StudyInstanceUID"]);
+      loggedExec(updateDisplayStudyStatement, updateDisplayStudyStatementString);
+    }
+  }
+
+  foreach (QString currentSeriesInstanceUid, displayFieldsMapSeries.keys())
+  {
+    // Insert row into DisplaySeries if does not exist
+    QMap<QString, QString> currentSeries = displayFieldsMapSeries[currentSeriesInstanceUid];
+    QSqlQuery displaySeriesQuery(QString("SELECT SeriesInstanceUID FROM DisplaySeries WHERE SeriesInstanceUID='%1' ;").arg(currentSeriesInstanceUid), Database);
+    if (!displaySeriesQuery.exec())
+    {
+      logger.error("SQLITE ERROR: " + displaySeriesQuery.lastError().driverText());
+      return;
+    }
+    if (!displaySeriesQuery.next())
+    {
+      QString displaySeriesFieldList, displaySeriesValueList;
+      foreach (QString tagName, currentSeries.keys())
+      {
+        displaySeriesFieldList.append( tagName + ", " );
+        displaySeriesValueList.append( currentSeries[tagName].isEmpty() ? "NULL, " : "'" + currentSeries[tagName] + "', " );
+      }
+      // Trim the separators from the end
+      displaySeriesFieldList = displaySeriesFieldList.left(displaySeriesFieldList.size() - 2);
+      displaySeriesValueList = displaySeriesValueList.left(displaySeriesValueList.size() - 2);
+
+      QSqlQuery insertDisplaySeriesStatement(Database);
+      QString insertDisplaySeriesStatementString = 
+        QString("INSERT INTO DisplaySeries (%1) VALUES (%2);").arg(displaySeriesFieldList).arg(displaySeriesValueList);
+      loggedExec(insertDisplaySeriesStatement, insertDisplaySeriesStatementString);
+    }
+    else // Update if it already exists
+    {
+      QString displaySeriesFieldUpdateList;
+      foreach (QString tagName, currentSeries.keys())
+      {
+        displaySeriesFieldUpdateList.append( tagName + "='" + (currentSeries[tagName].isEmpty() ? "NULL" : currentSeries[tagName]) + "', " );
+      }
+      // Trim the separators from the end
+      displaySeriesFieldUpdateList = displaySeriesFieldUpdateList.left(displaySeriesFieldUpdateList.size() - 2);
+
+      QSqlQuery updateDisplaySeriesStatement(Database);
+      QString updateDisplaySeriesStatementString = 
+        QString("UPDATE DisplaySeries SET %1 WHERE SeriesInstanceUID='%2';").arg(displaySeriesFieldUpdateList).arg(currentSeries["SeriesInstanceUID"]);
+      loggedExec(updateDisplaySeriesStatement, updateDisplaySeriesStatementString);
+    }
+  }
 }

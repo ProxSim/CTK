@@ -13,6 +13,9 @@ DROP TABLE IF EXISTS 'Images' ;
 DROP TABLE IF EXISTS 'Patients' ;
 DROP TABLE IF EXISTS 'Series' ;
 DROP TABLE IF EXISTS 'Studies' ;
+DROP TABLE IF EXISTS 'DisplayPatients' ;
+DROP TABLE IF EXISTS 'DisplayStudies' ;
+DROP TABLE IF EXISTS 'DisplaySeries' ;
 DROP TABLE IF EXISTS 'Directories' ;
 
 DROP INDEX IF EXISTS 'ImagesFilenameIndex' ;
@@ -21,13 +24,14 @@ DROP INDEX IF EXISTS 'SeriesStudyIndex' ;
 DROP INDEX IF EXISTS 'StudiesPatientIndex' ;
 
 CREATE TABLE 'SchemaInfo' ( 'Version' VARCHAR(1024) NOT NULL );
-INSERT INTO 'SchemaInfo' VALUES('0.5.3');
+INSERT INTO 'SchemaInfo' VALUES('0.6.0');
 
 CREATE TABLE 'Images' (
   'SOPInstanceUID' VARCHAR(64) NOT NULL,
   'Filename' VARCHAR(1024) NOT NULL ,
   'SeriesInstanceUID' VARCHAR(64) NOT NULL ,
   'InsertTimestamp' VARCHAR(20) NOT NULL ,
+  'DisplayedFieldsUpdatedTimestamp' VARCHAR(20) NULL ,
   PRIMARY KEY ('SOPInstanceUID') );
 CREATE TABLE 'Patients' (
   'UID' INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -72,6 +76,29 @@ CREATE UNIQUE INDEX IF NOT EXISTS 'ImagesFilenameIndex' ON 'Images' ('Filename')
 CREATE INDEX IF NOT EXISTS 'ImagesSeriesIndex' ON 'Images' ('SeriesInstanceUID');
 CREATE INDEX IF NOT EXISTS 'SeriesStudyIndex' ON 'Series' ('StudyInstanceUID');
 CREATE INDEX IF NOT EXISTS 'StudiesPatientIndex' ON 'Studies' ('PatientsUID');
+
+CREATE TABLE 'DisplayPatients' (
+  'UID' INTEGER PRIMARY KEY AUTOINCREMENT,
+  'PatientName' VARCHAR(255) NULL ,
+  'PatientID' VARCHAR(255) NULL ,
+  'NumberOfStudies' INT NULL );
+CREATE TABLE 'DisplayStudies' (
+  'StudyInstanceUID' VARCHAR(64) NOT NULL ,
+  'PatientsUID' INT NOT NULL ,
+  'StudyDescription' VARCHAR(255) NULL ,
+  'StudyDate' DATE NULL ,
+  'ModalitiesInStudy' VARCHAR(255) NULL ,
+  'InstitutionName' VARCHAR(255) NULL ,
+  'ReferringPhysician' VARCHAR(255) NULL ,
+  PRIMARY KEY ('StudyInstanceUID') );
+CREATE TABLE 'DisplaySeries' (
+  'SeriesInstanceUID' VARCHAR(64) NOT NULL ,
+  'StudyInstanceUID' VARCHAR(64) NOT NULL ,
+  'SeriesNumber' INT NULL ,
+  'SeriesDescription' VARCHAR(255) NULL ,
+  'Modality' VARCHAR(20) NULL ,
+  'NumberOfImages' INT NULL ,
+  PRIMARY KEY ('SeriesInstanceUID') );
 
 CREATE TABLE 'Directories' (
   'Dirname' VARCHAR(1024) ,
