@@ -319,7 +319,7 @@ void ctkDICOMModelPrivate::updateQueries(Node* node)const
       if(this->SearchParameters["Name"].toString() != ""){
         condition.append("PatientsName LIKE \"%" + this->SearchParameters["Name"].toString() + "%\"");
       }
-      query = this->generateQuery("UID as UID, PatientsName as Name, PatientsAge as Age, PatientsBirthDate as Date, PatientID as \"Subject ID\"","Patients", condition);
+      query = this->generateQuery("UID as UID, PatientsName as Name, PatientsAge as Age, PatientsBirthDate as Date, PatientID as \"Subject ID\"","DisplayPatients", condition);
       logger.debug ( "ctkDICOMModelPrivate::updateQueries for Root: query is: " + query );
       break;
     case ctkDICOMModel::PatientType:
@@ -338,7 +338,7 @@ void ctkDICOMModelPrivate::updateQueries(Node* node)const
           condition.append(" ( StudyDate BETWEEN \'" + QDate::fromString(this->SearchParameters["StartDate"].toString(), "yyyyMMdd").toString("yyyy-MM-dd")
                            + "\' AND \'" + QDate::fromString(this->SearchParameters["EndDate"].toString(), "yyyyMMdd").toString("yyyy-MM-dd") + "\' ) AND ");
         }
-      query = this->generateQuery("StudyInstanceUID as UID, StudyDescription as Name, ModalitiesInStudy as Scan, StudyDate as Date, AccessionNumber as Number, InstitutionName as Institution, ReferringPhysician as Referrer, PerformingPhysiciansName as Performer", "Studies", condition + QString("PatientsUID='%1'").arg(node->UID));
+      query = this->generateQuery("StudyInstanceUID as UID, StudyDescription as Name, ModalitiesInStudy as Scan, StudyDate as Date, AccessionNumber as Number, InstitutionName as Institution, ReferringPhysician as Referrer, PerformingPhysiciansName as Performer", "DisplayStudies", condition + QString("PatientsUID='%1'").arg(node->UID));
       logger.debug ( "ctkDICOMModelPrivate::updateQueries for Patient: query is: " + query );
       break;
     case ctkDICOMModel::StudyType:
@@ -347,7 +347,7 @@ void ctkDICOMModelPrivate::updateQueries(Node* node)const
         {
         condition.append("SeriesDescription LIKE \"%" + this->SearchParameters["Series"].toString() + "%\"" + " AND ");
         }
-      query = this->generateQuery("SeriesInstanceUID as UID, SeriesDescription as Name, Modality as Age, SeriesNumber as Scan, BodyPartExamined as \"Subject ID\", SeriesDate as Date, AcquisitionNumber as Number","Series",condition + QString("StudyInstanceUID='%1'").arg(node->UID));
+      query = this->generateQuery("SeriesInstanceUID as UID, SeriesDescription as Name, Modality as Age, SeriesNumber as Scan, BodyPartExamined as \"Subject ID\", SeriesDate as Date, AcquisitionNumber as Number","DisplaySeries",condition + QString("StudyInstanceUID='%1'").arg(node->UID));
       logger.debug ( "ctkDICOMModelPrivate::updateQueries for Study: query is: " + query );
       break;
     case ctkDICOMModel::SeriesType:
