@@ -71,7 +71,7 @@ public:
   }
 
   /// \brief TODO
-  virtual void getDisplayFieldsForInstance(QMap<QString, QString> cachedTags, QMap<QString, QString> &displayFieldsForCurrentSeries, QMap<QString, QString> &displayFieldsForCurrentStudy, QMap<QString, QString> &displayFieldsForCurrentPatient)
+  virtual void getDisplayFieldsForInstance(const QMap<QString, QString> &cachedTags, QMap<QString, QString> &displayFieldsForCurrentSeries, QMap<QString, QString> &displayFieldsForCurrentStudy, QMap<QString, QString> &displayFieldsForCurrentPatient)
   {
     QString modality = cachedTags[dicomTagToString(DCM_Modality)];
     if (!modality.compare("RTPLAN"))

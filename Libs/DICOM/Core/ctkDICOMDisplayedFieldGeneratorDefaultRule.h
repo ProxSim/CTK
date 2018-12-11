@@ -84,7 +84,7 @@ public:
   }
 
   /// \brief TODO
-  virtual void getDisplayFieldsForInstance(QMap<QString, QString> cachedTags, QMap<QString, QString> &displayFieldsForCurrentSeries, QMap<QString, QString> &displayFieldsForCurrentStudy, QMap<QString, QString> &displayFieldsForCurrentPatient)
+  virtual void getDisplayFieldsForInstance(const QMap<QString, QString> &cachedTags, QMap<QString, QString> &displayFieldsForCurrentSeries, QMap<QString, QString> &displayFieldsForCurrentStudy, QMap<QString, QString> &displayFieldsForCurrentPatient)
   {
     displayFieldsForCurrentPatient["PatientName"] = cachedTags[dicomTagToString(DCM_PatientName)];    
     displayFieldsForCurrentPatient["PatientID"] = cachedTags[dicomTagToString(DCM_PatientID)];
