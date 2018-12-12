@@ -43,10 +43,10 @@ ctkDICOMDisplayedFieldGeneratorPrivate::ctkDICOMDisplayedFieldGeneratorPrivate(c
   ,Database(NULL)
 {
   // register commonly used rules
-  AllRules.append(new ctkDICOMDisplayedFieldGeneratorDefaultRule);
-  AllRules.append(new ctkDICOMDisplayedFieldGeneratorRadiotherapySeriesDescriptionRule);
+  this->AllRules.append(new ctkDICOMDisplayedFieldGeneratorDefaultRule);
+  this->AllRules.append(new ctkDICOMDisplayedFieldGeneratorRadiotherapySeriesDescriptionRule);
 
-  foreach(ctkDICOMDisplayedFieldGeneratorAbstractRule* rule, AllRules)
+  foreach(ctkDICOMDisplayedFieldGeneratorAbstractRule* rule, this->AllRules)
   {
     rule->registerEmptyFieldNames(EmptyFieldNamesDisplaySeries, EmptyFieldNamesDisplayStudies, EmptyFieldNamesDisplayPatients);
   }
@@ -55,11 +55,11 @@ ctkDICOMDisplayedFieldGeneratorPrivate::ctkDICOMDisplayedFieldGeneratorPrivate(c
 //------------------------------------------------------------------------------
 ctkDICOMDisplayedFieldGeneratorPrivate::~ctkDICOMDisplayedFieldGeneratorPrivate()
 {
-  foreach(ctkDICOMDisplayedFieldGeneratorAbstractRule* rule, AllRules)
+  foreach(ctkDICOMDisplayedFieldGeneratorAbstractRule* rule, this->AllRules)
   {
     delete rule;
   }
-  AllRules.clear();
+  this->AllRules.clear();
 }
 
 //------------------------------------------------------------------------------

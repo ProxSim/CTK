@@ -317,8 +317,8 @@ bool ctkDICOMTableView::eventFilter(QObject *obj, QEvent *event)
 void ctkDICOMTableView::setQuery(const QStringList &uids)
 {
   Q_D(ctkDICOMTableView);
-  QString query = ("select distinct %1.* from DisplayPatients, DisplaySeries, DisplayStudies where "
-                   "DisplayPatients.UID = DisplayStudies.PatientsUID and DisplayStudies.StudyInstanceUID = DisplaySeries.StudyInstanceUID");
+  QString query = ("select distinct %1.* from Patients, Series, Studies where "
+                   "Patients.UID = Studies.PatientsUID and Studies.StudyInstanceUID = Series.StudyInstanceUID");
 
   if (!uids.empty() && d->queryForeignKey.length() != 0)
     {

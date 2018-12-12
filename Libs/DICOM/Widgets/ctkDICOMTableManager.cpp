@@ -72,10 +72,10 @@ void ctkDICOMTableManagerPrivate::init()
   Q_Q(ctkDICOMTableManager);
   this->setupUi(q);
 
-  this->patientsTable->setQueryTableName("DisplayPatients");
-  this->studiesTable->setQueryTableName("DisplayStudies");
+  this->patientsTable->setQueryTableName("Patients");
+  this->studiesTable->setQueryTableName("Studies");
   this->studiesTable->setQueryForeignKey("PatientsUID");
-  this->seriesTable->setQueryTableName("DisplaySeries");
+  this->seriesTable->setQueryTableName("Series");
   this->seriesTable->setQueryForeignKey("StudyInstanceUID");
 
   q->setDisplayDensity(ctkDICOMTableManager::Comfortable);
@@ -199,7 +199,7 @@ QStringList ctkDICOMTableManager::currentSeriesSelection()
 void ctkDICOMTableManager::onPatientsQueryChanged(const QStringList &uids)
 {
   Q_D(ctkDICOMTableManager);
-  const std::pair<QString, QStringList> patientCondition("DisplayPatients.UID", uids);
+  const std::pair<QString, QStringList> patientCondition("Patients.UID", uids);
   d->seriesTable->addSqlWhereCondition(patientCondition);
   d->studiesTable->addSqlWhereCondition(patientCondition);
 }
@@ -208,7 +208,7 @@ void ctkDICOMTableManager::onPatientsQueryChanged(const QStringList &uids)
 void ctkDICOMTableManager::onStudiesQueryChanged(const QStringList &uids)
 {
   Q_D(ctkDICOMTableManager);
-  const std::pair<QString, QStringList> studiesCondition("DisplayStudies.StudyInstanceUID", uids);
+  const std::pair<QString, QStringList> studiesCondition("Studies.StudyInstanceUID", uids);
   d->seriesTable->addSqlWhereCondition(studiesCondition);
 }
 
@@ -216,7 +216,7 @@ void ctkDICOMTableManager::onStudiesQueryChanged(const QStringList &uids)
 void ctkDICOMTableManager::onPatientsSelectionChanged(const QStringList &uids)
 {
   std::pair<QString, QStringList> patientCondition;
-  patientCondition.first = "DisplayPatients.UID";
+  patientCondition.first = "Patients.UID";
   Q_D(ctkDICOMTableManager);
   if (!uids.empty())
     {
@@ -234,7 +234,7 @@ void ctkDICOMTableManager::onPatientsSelectionChanged(const QStringList &uids)
 void ctkDICOMTableManager::onStudiesSelectionChanged(const QStringList &uids)
 {
   std::pair<QString, QStringList> studiesCondition;
-  studiesCondition.first = "DisplayStudies.StudyInstanceUID";
+  studiesCondition.first = "Studies.StudyInstanceUID";
   Q_D(ctkDICOMTableManager);
   if (!uids.empty())
     {

@@ -86,7 +86,7 @@ public:
   /// \brief TODO
   virtual void getDisplayFieldsForInstance(const QMap<QString, QString> &cachedTags, QMap<QString, QString> &displayFieldsForCurrentSeries, QMap<QString, QString> &displayFieldsForCurrentStudy, QMap<QString, QString> &displayFieldsForCurrentPatient)
   {
-    displayFieldsForCurrentPatient["PatientName"] = cachedTags[dicomTagToString(DCM_PatientName)];    
+    displayFieldsForCurrentPatient["PatientsName"] = cachedTags[dicomTagToString(DCM_PatientName)];    
     displayFieldsForCurrentPatient["PatientID"] = cachedTags[dicomTagToString(DCM_PatientID)];
     //TODO: Number of studies
 
@@ -115,7 +115,7 @@ public:
     )
   {
     mergeExpectSameValue("PatientIndex", initialFieldsPatient, newFieldsPatient, mergedFieldsPatient, emptyFieldsPatient);
-    mergeExpectSameValue("PatientName", initialFieldsPatient, newFieldsPatient, mergedFieldsPatient, emptyFieldsPatient);
+    mergeExpectSameValue("PatientsName", initialFieldsPatient, newFieldsPatient, mergedFieldsPatient, emptyFieldsPatient);
     mergeExpectSameValue("PatientID", initialFieldsPatient, newFieldsPatient, mergedFieldsPatient, emptyFieldsPatient);
 
     mergeExpectSameValue("StudyInstanceUID", initialFieldsStudy, newFieldsStudy, mergedFieldsStudy, emptyFieldsStudy);
