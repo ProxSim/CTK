@@ -85,15 +85,61 @@ CREATE INDEX IF NOT EXISTS 'ImagesSeriesIndex' ON 'Images' ('SeriesInstanceUID')
 CREATE INDEX IF NOT EXISTS 'SeriesStudyIndex' ON 'Series' ('StudyInstanceUID');
 CREATE INDEX IF NOT EXISTS 'StudiesPatientIndex' ON 'Studies' ('PatientsUID');
 
+CREATE TABLE 'Directories' (
+  'Dirname' VARCHAR(1024) ,
+  PRIMARY KEY ('Dirname') );
+
 CREATE TABLE 'ColumnDisplayProperties' (
   'TableName' VARCHAR(64) NOT NULL,
   'FieldName' VARCHAR(64) NOT NULL ,
   'DisplayedName' VARCHAR(255) NULL ,
-  'Visible' INT NULL DEFAULT 1 ,
+  'Visibility' INT NULL DEFAULT 1 ,
   'Weight' INT NULL ,
   'Format' VARCHAR(255) NULL ,
   PRIMARY KEY ('TableName', 'FieldName') );
 
-CREATE TABLE 'Directories' (
-  'Dirname' VARCHAR(1024) ,
-  PRIMARY KEY ('Dirname') );
+INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'UID',                             '',                     0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'PatientsName',                    'Patient name',         1, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'PatientID',                       'Patient ID',           1, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'PatientsBirthDate',               'Birth date',           1, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'PatientsBirthTime',               'Birth time',           0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'PatientsSex',                     'Sex',                  0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'PatientsAge',                     'Age',                  0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'PatientsComments',                'Comments',             0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'InsertTimestamp',                 'Date added',           1, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'DisplayedPatientsName',           'Patient name',         0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'DisplayedNumberOfStudies',        'Number of studies',    1, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'DisplayedFieldsUpdatedTimestamp', '',                     0, 0, '');
+
+INSERT INTO 'ColumnDisplayProperties' VALUES('Studies',  'StudyInstanceUID',                '',                     0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Studies',  'PatientsUID',                     '',                     0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Studies',  'StudyID',                         'Study ID',             1, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Studies',  'StudyDate',                       'Study date',           1, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Studies',  'StudyTime',                       'Study time',           0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Studies',  'StudyDescription',                'Description',          1, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Studies',  'AccessionNumber',                 'Accession #',          0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Studies',  'ModalitiesInStudy',               'Modalities',           0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Studies',  'InstitutionName',                 'Institution',          0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Studies',  'ReferringPhysician',              'Referring physician',  0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Studies',  'PerformingPhysiciansName',        'Performing physician', 0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Studies',  'InsertTimestamp',                 'Date added',           1, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Studies',  'DisplayedNumberOfSeries',         'Number of series',     1, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Studies',  'DisplayedFieldsUpdatedTimestamp', '',                     0, 0, '');
+
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'SeriesInstanceUID',               '',                     0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'StudyInstanceUID',                '',                     0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'SeriesNumber',                    'Series #',             1, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'SeriesDate',                      'Series date',          0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'SeriesTime',                      'Series time',          0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'SeriesDescription',               'Description',          1, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'Modality',                        'Modality',             1, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'BodyPartExamined',                'Body part',            0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'FrameOfReferenceUID',             '',                     0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'AcquisitionNumber',               'Acquisition #',        0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'ContrastAgent',                   'Contrast agent',       0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'ScanningSequence',                'Scanning sequence',    0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'EchoNumber',                      'Echo #',               0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'TemporalPosition',                'Temporal position',    0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'InsertTimestamp',                 'Date added',           1, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'DisplayedNumberOfImages',         'Number of slices',     1, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'DisplayedFieldsUpdatedTimestamp', '',                     0, 0, '');

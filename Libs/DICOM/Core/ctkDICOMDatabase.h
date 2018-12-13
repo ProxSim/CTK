@@ -263,6 +263,14 @@ public:
   /// Insert lists of tags into the cache as a batch query operation
   Q_INVOKABLE bool cacheTags (const QStringList sopInstanceUIDs, const QStringList tags, const QStringList values);
 
+  /// Get displayed name of a given field
+  Q_INVOKABLE QString displayedNameForField(QString table, QString field) const;
+  /// Get visibility of a given field
+  Q_INVOKABLE bool visibilityForField(QString table, QString field) const;
+  /// Get weight of a given field
+  Q_INVOKABLE int weightForField(QString table, QString field) const;
+  /// Get format of a given field
+  Q_INVOKABLE QString formatForField(QString table, QString field) const;
 
 Q_SIGNALS:
   /// Things inserted to database.
