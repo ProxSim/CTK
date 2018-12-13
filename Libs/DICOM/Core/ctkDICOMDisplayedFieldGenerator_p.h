@@ -49,9 +49,9 @@ public:
   QList<ctkDICOMDisplayedFieldGeneratorAbstractRule*> AllRules;
   ctkDICOMDatabase* Database;
 
-  QMap<QString, QString> EmptyFieldNamesDisplayPatients;
-  QMap<QString, QString> EmptyFieldNamesDisplayStudies;
-  QMap<QString, QString> EmptyFieldNamesDisplaySeries;
+  QMap<QString, QString> EmptyFieldNamesPatients;
+  QMap<QString, QString> EmptyFieldNamesStudies;
+  QMap<QString, QString> EmptyFieldNamesSeries;
 };
 
 

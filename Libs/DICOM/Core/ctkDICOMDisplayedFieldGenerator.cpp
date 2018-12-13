@@ -39,8 +39,9 @@ static ctkLogger logger("org.commontk.dicom.DICOMDisplayedFieldGenerator" );
 // ctkDICOMDisplayedFieldGeneratorPrivate methods
 
 //------------------------------------------------------------------------------
-ctkDICOMDisplayedFieldGeneratorPrivate::ctkDICOMDisplayedFieldGeneratorPrivate(ctkDICOMDisplayedFieldGenerator& o) : q_ptr(&o)
-  ,Database(NULL)
+ctkDICOMDisplayedFieldGeneratorPrivate::ctkDICOMDisplayedFieldGeneratorPrivate(ctkDICOMDisplayedFieldGenerator& o)
+  : q_ptr(&o)
+  , Database(NULL)
 {
   // register commonly used rules
   this->AllRules.append(new ctkDICOMDisplayedFieldGeneratorDefaultRule);
@@ -48,7 +49,8 @@ ctkDICOMDisplayedFieldGeneratorPrivate::ctkDICOMDisplayedFieldGeneratorPrivate(c
 
   foreach(ctkDICOMDisplayedFieldGeneratorAbstractRule* rule, this->AllRules)
   {
-    rule->registerEmptyFieldNames(EmptyFieldNamesDisplaySeries, EmptyFieldNamesDisplayStudies, EmptyFieldNamesDisplayPatients);
+    rule->registerEmptyFieldNames(
+      this->EmptyFieldNamesSeries, this->EmptyFieldNamesStudies, this->EmptyFieldNamesPatients );
   }
 }
 
@@ -118,7 +120,7 @@ void ctkDICOMDisplayedFieldGenerator::updateDisplayFieldsForInstance( QString so
       initialFieldsSeries, initialFieldsStudy, initialFieldsPatient, // original DB contents
       newFieldsSeries, newFieldsStudy, newFieldsPatient, // new value
       displayFieldsForCurrentSeries, displayFieldsForCurrentStudy, displayFieldsForCurrentPatient, // new DB contents
-      d->EmptyFieldNamesDisplaySeries, d->EmptyFieldNamesDisplayStudies, d->EmptyFieldNamesDisplayPatients // empty field names defined by all the rules
+      d->EmptyFieldNamesSeries, d->EmptyFieldNamesStudies, d->EmptyFieldNamesPatients // empty field names defined by all the rules
       );   
   }
 }

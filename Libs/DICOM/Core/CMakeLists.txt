@@ -36,12 +36,15 @@ set(KIT_SRCS
   ctkDICOMUtil.h
   ctkDICOMDisplayedFieldGeneratorAbstractRule.h
   ctkDICOMDisplayedFieldGeneratorDefaultRule.h
+  ctkDICOMDisplayedFieldGeneratorDefaultRule.cpp
   ctkDICOMDisplayedFieldGeneratorRadiotherapySeriesDescriptionRule.h
+  ctkDICOMDisplayedFieldGeneratorRadiotherapySeriesDescriptionRule.cpp
 )
 
 # Abstract class should not be wrapped !
 set_source_files_properties(
   ctkDICOMAbstractThumbnailGenerator.h
+  ctkDICOMDisplayedFieldGeneratorAbstractRule.h
   WRAP_EXCLUDE
   )
 
