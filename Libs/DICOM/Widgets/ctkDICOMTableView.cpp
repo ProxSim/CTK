@@ -158,17 +158,40 @@ void ctkDICOMTableViewPrivate::applyColumnProperties()
   }
 
   int columnCount = this->dicomSQLModel.columnCount();
+  QList<int> columnWeights;
   for (int col=0; col<columnCount; ++col)
   {
     QString columnName = this->dicomSQLModel.headerData(col, Qt::Horizontal).toString();
-    QString displayedName = this->dicomDatabase->displayedNameForField(this->queryTableName(), columnName);
-    bool visbility = this->dicomDatabase->visibilityForField(this->queryTableName(), columnName);
-    int weight = this->dicomDatabase->weightForField(this->queryTableName(), columnName);
-    QString format = this->dicomDatabase->formatForField(this->queryTableName(), columnName);
 
+    // Apply displayed name
+    QString displayedName = this->dicomDatabase->displayedNameForField(this->queryTableName(), columnName);
     this->dicomSQLModel.setHeaderData(col, Qt::Horizontal, displayedName, Qt::DisplayRole);
+
+    // Apply visibility
+    bool visbility = this->dicomDatabase->visibilityForField(this->queryTableName(), columnName);
     this->tblDicomDatabaseView->setColumnHidden(col, !visbility);
-    //TODO: Apply weight and format
+
+    // Save weight to apply later
+    int weight = this->dicomDatabase->weightForField(this->queryTableName(), columnName);
+    columnWeights << weight;
+
+    QString format = this->dicomDatabase->formatForField(this->queryTableName(), columnName);
+    //TODO: Apply format
+  }
+
+  // Change column order according to weights (use bubble sort)
+  QHeaderView* header = this->tblDicomDatabaseView->horizontalHeader();
+  for (int i=0; i<columnCount-1; ++i)
+  {
+    // Last i elements are already in place    
+    for (int j=0; j<columnCount-i-1; ++j)
+    {
+      if (columnWeights[j] > columnWeights[j+1])
+      {
+        columnWeights.swap(j, j+1);
+        header->swapSections(j, j+1);
+      }
+    }
   }
 }
 
