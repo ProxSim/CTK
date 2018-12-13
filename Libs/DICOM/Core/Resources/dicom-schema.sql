@@ -29,7 +29,7 @@ CREATE TABLE 'Images' (
   'Filename' VARCHAR(1024) NOT NULL ,
   'SeriesInstanceUID' VARCHAR(64) NOT NULL ,
   'InsertTimestamp' VARCHAR(20) NOT NULL ,
-  'DisplayedFieldsUpdatedTimestamp' VARCHAR(20) NULL ,
+  'DisplayedFieldsUpdatedTimestamp' DATETIME NULL ,
   PRIMARY KEY ('SOPInstanceUID') );
 CREATE TABLE 'Patients' (
   'UID' INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,7 +43,7 @@ CREATE TABLE 'Patients' (
   'InsertTimestamp' VARCHAR(20) NOT NULL ,
   'DisplayedPatientsName' VARCHAR(255) NULL ,
   'DisplayedNumberOfStudies' INT NULL ,
-  'DisplayedFieldsUpdatedTimestamp' VARCHAR(20) NULL );
+  'DisplayedFieldsUpdatedTimestamp' DATETIME NULL );
 CREATE TABLE 'Studies' (
   'StudyInstanceUID' VARCHAR(64) NOT NULL ,
   'PatientsUID' INT NOT NULL ,
@@ -58,7 +58,7 @@ CREATE TABLE 'Studies' (
   'PerformingPhysiciansName' VARCHAR(255) NULL ,
   'InsertTimestamp' VARCHAR(20) NOT NULL ,
   'DisplayedNumberOfSeries' INT NULL ,
-  'DisplayedFieldsUpdatedTimestamp' VARCHAR(20) NULL ,
+  'DisplayedFieldsUpdatedTimestamp' DATETIME NULL ,
   PRIMARY KEY ('StudyInstanceUID') );
 CREATE TABLE 'Series' (
   'SeriesInstanceUID' VARCHAR(64) NOT NULL ,
@@ -77,7 +77,7 @@ CREATE TABLE 'Series' (
   'TemporalPosition' INT NULL ,
   'InsertTimestamp' VARCHAR(20) NOT NULL ,
   'DisplayedNumberOfImages' INT NULL ,
-  'DisplayedFieldsUpdatedTimestamp' VARCHAR(20) NULL ,
+  'DisplayedFieldsUpdatedTimestamp' DATETIME NULL ,
   PRIMARY KEY ('SeriesInstanceUID') );
 
 CREATE UNIQUE INDEX IF NOT EXISTS 'ImagesFilenameIndex' ON 'Images' ('Filename');
