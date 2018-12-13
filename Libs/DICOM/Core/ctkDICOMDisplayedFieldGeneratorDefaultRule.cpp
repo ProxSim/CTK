@@ -20,6 +20,9 @@
 
 #include "ctkDICOMDisplayedFieldGeneratorDefaultRule.h"
 
+// dcmtk includes
+#include "dcmtk/dcmdata/dcvrpn.h"
+
 //------------------------------------------------------------------------------
 QStringList ctkDICOMDisplayedFieldGeneratorDefaultRule::getRequiredDICOMTags()
 {
@@ -77,8 +80,9 @@ void ctkDICOMDisplayedFieldGeneratorDefaultRule::getDisplayFieldsForInstance(
   const QMap<QString, QString> &cachedTagsForInstance, QMap<QString, QString> &displayFieldsForCurrentSeries,
   QMap<QString, QString> &displayFieldsForCurrentStudy, QMap<QString, QString> &displayFieldsForCurrentPatient )
 {
-  displayFieldsForCurrentPatient["PatientsName"] = cachedTagsForInstance[dicomTagToString(DCM_PatientName)];    
+  displayFieldsForCurrentPatient["PatientsName"] = cachedTagsForInstance[dicomTagToString(DCM_PatientName)];
   displayFieldsForCurrentPatient["PatientID"] = cachedTagsForInstance[dicomTagToString(DCM_PatientID)];
+  displayFieldsForCurrentPatient["DisplayedPatientsName"] = this->humanReadablePatientName(cachedTagsForInstance[dicomTagToString(DCM_PatientName)]);
   //TODO: Number of studies
 
   displayFieldsForCurrentStudy["StudyInstanceUID"] = cachedTagsForInstance[dicomTagToString(DCM_StudyInstanceUID)];
@@ -108,6 +112,7 @@ void ctkDICOMDisplayedFieldGeneratorDefaultRule::mergeDisplayFieldsForInstance(
   mergeExpectSameValue("PatientIndex", initialFieldsPatient, newFieldsPatient, mergedFieldsPatient, emptyFieldsPatient);
   mergeExpectSameValue("PatientsName", initialFieldsPatient, newFieldsPatient, mergedFieldsPatient, emptyFieldsPatient);
   mergeExpectSameValue("PatientID", initialFieldsPatient, newFieldsPatient, mergedFieldsPatient, emptyFieldsPatient);
+  mergeExpectSameValue("DisplayedPatientsName", initialFieldsPatient, newFieldsPatient, mergedFieldsPatient, emptyFieldsPatient);
 
   mergeExpectSameValue("StudyInstanceUID", initialFieldsStudy, newFieldsStudy, mergedFieldsStudy, emptyFieldsStudy);
   mergeExpectSameValue("PatientIndex", initialFieldsStudy, newFieldsStudy, mergedFieldsStudy, emptyFieldsStudy);
@@ -122,4 +127,49 @@ void ctkDICOMDisplayedFieldGeneratorDefaultRule::mergeDisplayFieldsForInstance(
   mergeExpectSameValue("SeriesNumber", initialFieldsSeries, newFieldsSeries, mergedFieldsSeries, emptyFieldsSeries);
   mergeConcatenate("SeriesDescription", initialFieldsSeries, newFieldsSeries, mergedFieldsSeries, emptyFieldsSeries);
   mergeExpectSameValue("Modality", initialFieldsSeries, newFieldsSeries, mergedFieldsSeries, emptyFieldsSeries);
+}
+
+//------------------------------------------------------------------------------
+QString ctkDICOMDisplayedFieldGeneratorDefaultRule::humanReadablePatientName(QString dicomPatientName)
+{
+  OFString dicomName(dicomPatientName.toLatin1().constData());
+  OFString formattedName;
+  OFString lastName, firstName, middleName, namePrefix, nameSuffix;
+  OFCondition l_error = DcmPersonName::getNameComponentsFromString(
+    dicomName, lastName, firstName, middleName, namePrefix, nameSuffix);
+  if (l_error.good())
+  {
+    formattedName.clear();
+    // concatenate name components per this convention Last, First Middle, Suffix (Prefix)
+    if (!lastName.empty())
+    {
+      formattedName += lastName;
+      if (!(firstName.empty() && middleName.empty()))
+      {
+        formattedName += ",";
+      }
+    }
+    if (!firstName.empty())
+    {
+      formattedName += " ";
+      formattedName += firstName;
+    }
+    if (!middleName.empty())
+    {
+      formattedName += " ";
+      formattedName += middleName;
+    }
+    if (!nameSuffix.empty())
+    {
+      formattedName += ", ";
+      formattedName += nameSuffix;
+    }
+    if (!namePrefix.empty())
+    {
+      formattedName += " (";
+      formattedName += namePrefix;
+      formattedName += ")";
+    }
+  }
+  return QString(formattedName.c_str());
 }
