@@ -101,15 +101,15 @@ void ctkDICOMDisplayedFieldGenerator::updateDisplayFieldsForInstance( QString so
 {
   Q_D(ctkDICOMDisplayedFieldGenerator);
 
-  QMap<QString, QString> cachedTags;
-  d->Database->getCachedTags(sopInstanceUID, cachedTags);
+  QMap<QString, QString> cachedTagsForInstance;
+  d->Database->getCachedTags(sopInstanceUID, cachedTagsForInstance);
 
   QMap<QString, QString> newFieldsSeries;
   QMap<QString, QString> newFieldsStudy;
   QMap<QString, QString> newFieldsPatient;
   foreach(ctkDICOMDisplayedFieldGeneratorAbstractRule* rule, d->AllRules)
   {
-    rule->getDisplayFieldsForInstance(cachedTags,newFieldsSeries,newFieldsStudy,newFieldsPatient);   
+    rule->getDisplayFieldsForInstance(cachedTagsForInstance, newFieldsSeries, newFieldsStudy, newFieldsPatient);   
   }
   QMap<QString, QString> initialFieldsSeries=displayFieldsForCurrentSeries;
   QMap<QString, QString> initialFieldsStudy=displayFieldsForCurrentStudy;

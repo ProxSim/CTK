@@ -141,5 +141,5 @@ INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'ScanningSequence',    
 INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'EchoNumber',                      'Echo #',               0, 0, '');
 INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'TemporalPosition',                'Temporal position',    0, 0, '');
 INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'InsertTimestamp',                 'Date added',           1, 0, '');
-INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'DisplayedNumberOfImages',         'Number of slices',     1, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'DisplayedNumberOfImages',         'Number of images',     1, 0, '');
 INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'DisplayedFieldsUpdatedTimestamp', '',                     0, 0, '');

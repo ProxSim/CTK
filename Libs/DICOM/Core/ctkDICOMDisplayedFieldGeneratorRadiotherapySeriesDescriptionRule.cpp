@@ -59,19 +59,19 @@ void ctkDICOMDisplayedFieldGeneratorRadiotherapySeriesDescriptionRule::registerE
 
 //------------------------------------------------------------------------------
 void ctkDICOMDisplayedFieldGeneratorRadiotherapySeriesDescriptionRule::getDisplayFieldsForInstance(
-  const QMap<QString, QString> &cachedTags, QMap<QString, QString> &displayFieldsForCurrentSeries,
+  const QMap<QString, QString> &cachedTagsForInstance, QMap<QString, QString> &displayFieldsForCurrentSeries,
   QMap<QString, QString> &displayFieldsForCurrentStudy, QMap<QString, QString> &displayFieldsForCurrentPatient )
 {
-  QString modality = cachedTags[dicomTagToString(DCM_Modality)];
+  QString modality = cachedTagsForInstance[dicomTagToString(DCM_Modality)];
   if (!modality.compare("RTPLAN"))
   {
-    if (!cachedTags[dicomTagToString(DCM_RTPlanName)].isEmpty())
+    if (!cachedTagsForInstance[dicomTagToString(DCM_RTPlanName)].isEmpty())
     {
-      displayFieldsForCurrentSeries["SeriesDescription"] = cachedTags[dicomTagToString(DCM_RTPlanName)];
+      displayFieldsForCurrentSeries["SeriesDescription"] = cachedTagsForInstance[dicomTagToString(DCM_RTPlanName)];
     }
-    else if (!cachedTags[dicomTagToString(DCM_RTPlanLabel)].isEmpty())
+    else if (!cachedTagsForInstance[dicomTagToString(DCM_RTPlanLabel)].isEmpty())
     {
-      displayFieldsForCurrentSeries["SeriesDescription"] = cachedTags[dicomTagToString(DCM_RTPlanLabel)];
+      displayFieldsForCurrentSeries["SeriesDescription"] = cachedTagsForInstance[dicomTagToString(DCM_RTPlanLabel)];
     }
     else
     {
@@ -80,13 +80,13 @@ void ctkDICOMDisplayedFieldGeneratorRadiotherapySeriesDescriptionRule::getDispla
   }
   else if (!modality.compare("RTSTRUCT"))
   {
-    if (!cachedTags[dicomTagToString(DCM_StructureSetName)].isEmpty())
+    if (!cachedTagsForInstance[dicomTagToString(DCM_StructureSetName)].isEmpty())
     {
-      displayFieldsForCurrentSeries["SeriesDescription"] = cachedTags[dicomTagToString(DCM_StructureSetName)];
+      displayFieldsForCurrentSeries["SeriesDescription"] = cachedTagsForInstance[dicomTagToString(DCM_StructureSetName)];
     }
-    else if (!cachedTags[dicomTagToString(DCM_StructureSetLabel)].isEmpty())
+    else if (!cachedTagsForInstance[dicomTagToString(DCM_StructureSetLabel)].isEmpty())
     {
-      displayFieldsForCurrentSeries["SeriesDescription"] = cachedTags[dicomTagToString(DCM_StructureSetLabel)];
+      displayFieldsForCurrentSeries["SeriesDescription"] = cachedTagsForInstance[dicomTagToString(DCM_StructureSetLabel)];
     }
     else
     {
@@ -95,13 +95,13 @@ void ctkDICOMDisplayedFieldGeneratorRadiotherapySeriesDescriptionRule::getDispla
   }
   else if (!modality.compare("RTIMAGE"))
   {
-    if (!cachedTags[dicomTagToString(DCM_RTImageName)].isEmpty())
+    if (!cachedTagsForInstance[dicomTagToString(DCM_RTImageName)].isEmpty())
     {
-      displayFieldsForCurrentSeries["SeriesDescription"] = cachedTags[dicomTagToString(DCM_RTImageName)];
+      displayFieldsForCurrentSeries["SeriesDescription"] = cachedTagsForInstance[dicomTagToString(DCM_RTImageName)];
     }
-    else if (!cachedTags[dicomTagToString(DCM_RTImageLabel)].isEmpty())
+    else if (!cachedTagsForInstance[dicomTagToString(DCM_RTImageLabel)].isEmpty())
     {
-      displayFieldsForCurrentSeries["SeriesDescription"] = cachedTags[dicomTagToString(DCM_RTImageLabel)];
+      displayFieldsForCurrentSeries["SeriesDescription"] = cachedTagsForInstance[dicomTagToString(DCM_RTImageLabel)];
     }
     else
     {

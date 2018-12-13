@@ -129,6 +129,9 @@ public:
   /// Get all Filename values from table
   QStringList filenames(QString table);
 
+  /// Calculate number of images for given series display fields maps
+  void setNumberOfImagesToSeriesDisplayFieldsMap(QMap<QString, QMap<QString, QString> > &displayFieldsMapSeries);
+
   /// Name of the database file (i.e. for SQLITE the sqlite file)
   QString DatabaseFileName;
   QString LastError;
@@ -540,18 +543,18 @@ bool ctkDICOMDatabasePrivate::openTagCacheDatabase()
 {
   // try to open the database if it's not already open
   if ( this->TagCacheDatabase.isOpen() )
-    {
+  {
     return true;
-    }
+  }
   this->TagCacheDatabase = QSqlDatabase::addDatabase(
         "QSQLITE", this->Database.connectionName() + "TagCache");
   this->TagCacheDatabase.setDatabaseName(this->TagCacheDatabaseFilename);
   if ( !this->TagCacheDatabase.open() )
-    {
+  {
     qDebug() << "TagCacheDatabase would not open!\n";
     qDebug() << "TagCacheDatabaseFilename is: " << this->TagCacheDatabaseFilename << "\n";
     return false;
-    }
+  }
 
   // Disable synchronous writing to make modifications faster
   QSqlQuery pragmaSyncQuery(this->TagCacheDatabase);
@@ -628,7 +631,7 @@ void ctkDICOMDatabasePrivate::insert(const ctkDICOMItem& ctkDataset, const QStri
     {
       if (this->LoggedExecVerbose)
       {
-      qDebug() << "database filename for " << sopInstanceUID << " is empty - we should insert on top of it";
+        qDebug() << "database filename for " << sopInstanceUID << " is empty - we should insert on top of it";
       }
     }
     else
@@ -669,15 +672,15 @@ void ctkDICOMDatabasePrivate::insert(const ctkDICOMItem& ctkDataset, const QStri
     patientID = studyInstanceUID;
   }
   if ( patientsName.isEmpty() && !patientID.isEmpty() )
-    { // Use patient id as name if name is empty - can happen on anonymized datasets
-      // see: http://www.na-mic.org/Bug/view.php?id=1643
-      patientsName = patientID;
-    }
+  { // Use patient id as name if name is empty - can happen on anonymized datasets
+    // see: http://www.na-mic.org/Bug/view.php?id=1643
+    patientsName = patientID;
+  }
   if ( patientsName.isEmpty() || studyInstanceUID.isEmpty() || patientID.isEmpty() )
-    {
-      logger.error("Dataset is missing necessary information (patient name, study instance UID, or patient ID)!");
-      return;
-    }
+  {
+    logger.error("Dataset is missing necessary information (patient name, study instance UID, or patient ID)!");
+    return;
+  }
 
   // store the file if the database is not in memory
   // TODO: if we are called from insert(file) we
@@ -701,7 +704,7 @@ void ctkDICOMDatabasePrivate::insert(const ctkDICOMItem& ctkDataset, const QStri
     {
       if (this->LoggedExecVerbose)
       {
-      logger.debug("Saving file: " + filename);
+        logger.debug("Saving file: " + filename);
       }
 
       if ( !ctkDataset.SaveToFile( filename) )
@@ -713,12 +716,11 @@ void ctkDICOMDatabasePrivate::insert(const ctkDICOMItem& ctkDataset, const QStri
     else
     {
       // we're inserting an existing file
-
       QFile currentFile( filePath );
       currentFile.copy(filename);
       if (this->LoggedExecVerbose)
       {
-      logger.debug("Copy file from: " + filePath + " to: " + filename);
+        logger.debug("Copy file from: " + filePath + " to: " + filename);
       }
     }
   }
@@ -838,7 +840,7 @@ void ctkDICOMDatabasePrivate::insert(const ctkDICOMItem& ctkDataset, const QStri
   }
   else
   {
-  qDebug() << "No patient name or no patient id - not inserting!";
+    qDebug() << "No patient name or no patient id - not inserting!";
   }
 }
 
@@ -1114,6 +1116,31 @@ bool ctkDICOMDatabasePrivate::applyDisplayFieldsChanges( QMap<QString, QMap<QStr
 }
 
 //------------------------------------------------------------------------------
+void ctkDICOMDatabasePrivate::setNumberOfImagesToSeriesDisplayFieldsMap(QMap<QString, QMap<QString, QString> > &displayFieldsMapSeries)
+{
+  foreach (QString currentSeriesInstanceUid, displayFieldsMapSeries.keys())
+  {
+    QSqlQuery numberOfImagesQuery(
+      QString("SELECT COUNT(*) FROM TagCache WHERE Tag='%1' AND Value='%2';")
+        .arg(ctkDICOMItem::TagKeyStripped(DCM_SeriesInstanceUID)).arg(currentSeriesInstanceUid),
+      this->TagCacheDatabase );
+    if (!numberOfImagesQuery.exec())
+    {
+      logger.error("SQLITE ERROR: " + numberOfImagesQuery.lastError().driverText());
+      continue;
+    }
+
+    numberOfImagesQuery.first();
+    int currentNumberOfImages = numberOfImagesQuery.value(0).toInt();
+
+    QMap<QString, QString> displayFieldsForCurrentSeries = displayFieldsMapSeries[currentSeriesInstanceUid];
+    displayFieldsForCurrentSeries["DisplayedNumberOfImages"] = QString::number(currentNumberOfImages);
+    displayFieldsMapSeries[currentSeriesInstanceUid] = displayFieldsForCurrentSeries;
+  }
+}
+
+
+//------------------------------------------------------------------------------
 // ctkDICOMDatabase methods
 //------------------------------------------------------------------------------
 
@@ -1250,14 +1277,14 @@ QString ctkDICOMDatabase::schemaVersionLoaded()
   /// look for the version info in the database
   QSqlQuery versionQuery(d->Database);
   if ( !d->loggedExec( versionQuery, QString("SELECT Version from SchemaInfo;") ) )
-    {
+  {
     return QString("");
-    }
+  }
 
   if (versionQuery.next())
-    {
+  {
     return versionQuery.value(0).toString();
-    }
+  }
 
   return QString("");
 }
@@ -1279,15 +1306,15 @@ QString ctkDICOMDatabase::schemaVersion()
 bool ctkDICOMDatabase::updateSchemaIfNeeded(const char* schemaFile)
 {
   if ( schemaVersionLoaded() != schemaVersion() )
-    {
+  {
     return this->updateSchema(schemaFile);
-    }
+  }
   else
-    {
+  {
     emit schemaUpdateStarted(0);
     emit schemaUpdated();
     return false;
-    }
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -1446,9 +1473,9 @@ QString ctkDICOMDatabase::descriptionForSeries(const QString seriesUID)
   query.bindValue ( 0, seriesUID);
   query.exec();
   if (query.next())
-    {
+  {
     result = query.value(0).toString();
-    }
+  }
 
   return result;
 }
@@ -1465,9 +1492,9 @@ QString ctkDICOMDatabase::descriptionForStudy(const QString studyUID)
   query.bindValue ( 0, studyUID);
   query.exec();
   if (query.next())
-    {
+  {
     result =  query.value(0).toString();
-    }
+  }
 
   return result;
 }
@@ -1484,9 +1511,9 @@ QString ctkDICOMDatabase::nameForPatient(const QString patientUID)
   query.bindValue ( 0, patientUID);
   query.exec();
   if (query.next())
-    {
+  {
     result =  query.value(0).toString();
-    }
+  }
 
   return result;
 }
@@ -1501,9 +1528,9 @@ QStringList ctkDICOMDatabase::seriesForStudy(QString studyUID)
   query.exec();
   QStringList result;
   while (query.next())
-    {
-      result << query.value(0).toString();
-    }
+  {
+    result << query.value(0).toString();
+  }
   return( result );
 }
 
@@ -1534,9 +1561,9 @@ QStringList ctkDICOMDatabase::filesForSeries(QString seriesUID)
   query.exec();
   QStringList result;
   while (query.next())
-    {
-      result << query.value(0).toString();
-    }
+  {
+    result << query.value(0).toString();
+  }
   return( result );
 }
 
@@ -1550,9 +1577,9 @@ QString ctkDICOMDatabase::fileForInstance(QString sopInstanceUID)
   query.exec();
   QString result;
   if (query.next())
-    {
+  {
     result = query.value(0).toString();
-    }
+  }
   return( result );
 }
 
@@ -1566,9 +1593,9 @@ QString ctkDICOMDatabase::seriesForFile(QString fileName)
   query.exec();
   QString result;
   if (query.next())
-    {
+  {
     result = query.value(0).toString();
-    }
+  }
   return( result );
 }
 
@@ -1582,9 +1609,9 @@ QString ctkDICOMDatabase::instanceForFile(QString fileName)
   query.exec();
   QString result;
   if (query.next())
-    {
+  {
     result = query.value(0).toString();
-    }
+  }
   return( result );
 }
 
@@ -1598,9 +1625,9 @@ QDateTime ctkDICOMDatabase::insertDateTimeForInstance(QString sopInstanceUID)
   query.exec();
   QDateTime result;
   if (query.next())
-    {
+  {
     result = QDateTime::fromString(query.value(0).toString(), Qt::ISODate);
-    }
+  }
   return( result );
 }
 
@@ -1625,10 +1652,10 @@ void ctkDICOMDatabase::loadInstanceHeader (QString sopInstanceUID)
   query.bindValue ( 0, sopInstanceUID );
   query.exec();
   if (query.next())
-    {
-      QString fileName = query.value(0).toString();
-      this->loadFileHeader(fileName);
-    }
+  {
+    QString fileName = query.value(0).toString();
+    this->loadFileHeader(fileName);
+  }
   return;
 }
 
@@ -2255,7 +2282,9 @@ void ctkDICOMDatabase::updateDisplayedFields()
 
     // Patient
     int displayFieldsIndexForCurrentPatient = d->getDisplayPatientFieldsIndex(
-        cachedTags[ctkDICOMItem::TagKeyStripped(DCM_PatientName)], cachedTags[ctkDICOMItem::TagKeyStripped(DCM_PatientID)], displayFieldsVectorPatient );
+      cachedTags[ctkDICOMItem::TagKeyStripped(DCM_PatientName)],
+      cachedTags[ctkDICOMItem::TagKeyStripped(DCM_PatientID)],
+      displayFieldsVectorPatient );
     if (displayFieldsIndexForCurrentPatient < 0)
     {
       logger.error("Failed to find patient for SOP Instance UID = " + sopInstanceUID);
@@ -2264,7 +2293,9 @@ void ctkDICOMDatabase::updateDisplayedFields()
     QMap<QString, QString> displayFieldsForCurrentPatient = displayFieldsVectorPatient[ displayFieldsIndexForCurrentPatient ];
 
     // Study
-    QString displayFieldsKeyForCurrentStudy = d->getDisplayStudyFieldsKey( cachedTags[ctkDICOMItem::TagKeyStripped(DCM_StudyInstanceUID)], displayFieldsMapStudy );
+    QString displayFieldsKeyForCurrentStudy = d->getDisplayStudyFieldsKey(
+      cachedTags[ctkDICOMItem::TagKeyStripped(DCM_StudyInstanceUID)],
+      displayFieldsMapStudy );
     if (displayFieldsKeyForCurrentStudy.isEmpty())
     {
       logger.error("Failed to find study for SOP Instance UID = " + sopInstanceUID);
@@ -2274,7 +2305,9 @@ void ctkDICOMDatabase::updateDisplayedFields()
     displayFieldsForCurrentStudy["PatientIndex"] = QString::number(displayFieldsIndexForCurrentPatient);
 
     // Series
-    QString displayFieldsKeyForCurrentSeries = d->getDisplaySeriesFieldsKey( seriesInstanceUID, displayFieldsMapSeries );
+    QString displayFieldsKeyForCurrentSeries = d->getDisplaySeriesFieldsKey(
+      seriesInstanceUID,
+      displayFieldsMapSeries );
     if (displayFieldsKeyForCurrentSeries.isEmpty())
     {
       logger.error("Failed to find series for SOP Instance UID = " + sopInstanceUID);
@@ -2286,10 +2319,14 @@ void ctkDICOMDatabase::updateDisplayedFields()
     d->DisplayedFieldGenerator.updateDisplayFieldsForInstance(sopInstanceUID,
       displayFieldsForCurrentSeries, displayFieldsForCurrentStudy, displayFieldsForCurrentPatient);
 
-    displayFieldsMapSeries[ seriesInstanceUID ] = displayFieldsForCurrentSeries;
+    // Set updated fields to the series / study / patient display fields maps
+    displayFieldsMapSeries[ displayFieldsKeyForCurrentSeries ] = displayFieldsForCurrentSeries;
     displayFieldsMapStudy[ displayFieldsKeyForCurrentStudy ] = displayFieldsForCurrentStudy;
     displayFieldsVectorPatient[ displayFieldsIndexForCurrentPatient ] = displayFieldsForCurrentPatient;
-  }
+  } // For each instance
+
+  // Calculate number of images in each updated series
+  d->setNumberOfImagesToSeriesDisplayFieldsMap(displayFieldsMapSeries);
 
   // Update/insert the display values
   if (displayFieldsMapSeries.count() > 0)
@@ -2308,6 +2345,8 @@ void ctkDICOMDatabase::updateDisplayedFields()
       }
     }
   }
+
+  emit databaseChanged();
 }
 
 //------------------------------------------------------------------------------

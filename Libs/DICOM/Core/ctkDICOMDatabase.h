@@ -200,7 +200,7 @@ public:
                             const QString& destinationDirectoryName = QString() );
 
   /// Update the fields in the database that are used for displaying information from information stored in the tag-cache
-  void updateDisplayedFields();
+  Q_INVOKABLE void updateDisplayedFields();
 
   /// Reset cached item IDs to make sure previous
   /// inserts do not interfere with upcoming insert operations.

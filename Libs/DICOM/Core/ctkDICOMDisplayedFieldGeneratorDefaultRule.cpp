@@ -74,28 +74,27 @@ void ctkDICOMDisplayedFieldGeneratorDefaultRule::registerEmptyFieldNames(
 
 //------------------------------------------------------------------------------
 void ctkDICOMDisplayedFieldGeneratorDefaultRule::getDisplayFieldsForInstance(
-  const QMap<QString, QString> &cachedTags, QMap<QString, QString> &displayFieldsForCurrentSeries,
+  const QMap<QString, QString> &cachedTagsForInstance, QMap<QString, QString> &displayFieldsForCurrentSeries,
   QMap<QString, QString> &displayFieldsForCurrentStudy, QMap<QString, QString> &displayFieldsForCurrentPatient )
 {
-  displayFieldsForCurrentPatient["PatientsName"] = cachedTags[dicomTagToString(DCM_PatientName)];    
-  displayFieldsForCurrentPatient["PatientID"] = cachedTags[dicomTagToString(DCM_PatientID)];
+  displayFieldsForCurrentPatient["PatientsName"] = cachedTagsForInstance[dicomTagToString(DCM_PatientName)];    
+  displayFieldsForCurrentPatient["PatientID"] = cachedTagsForInstance[dicomTagToString(DCM_PatientID)];
   //TODO: Number of studies
 
-  displayFieldsForCurrentStudy["StudyInstanceUID"] = cachedTags[dicomTagToString(DCM_StudyInstanceUID)];
+  displayFieldsForCurrentStudy["StudyInstanceUID"] = cachedTagsForInstance[dicomTagToString(DCM_StudyInstanceUID)];
   displayFieldsForCurrentStudy["PatientIndex"] = displayFieldsForCurrentPatient["PatientIndex"];
-  displayFieldsForCurrentStudy["StudyDescription"] = cachedTags[dicomTagToString(DCM_StudyDescription)];
-  displayFieldsForCurrentStudy["StudyDate"] = cachedTags[dicomTagToString(DCM_StudyDate)];
-  displayFieldsForCurrentStudy["ModalitiesInStudy"] = cachedTags[dicomTagToString(DCM_ModalitiesInStudy)];
-  displayFieldsForCurrentStudy["InstitutionName"] = cachedTags[dicomTagToString(DCM_InstitutionName)];
-  displayFieldsForCurrentStudy["ReferringPhysician"] = cachedTags[dicomTagToString(DCM_ReferringPhysicianName)];
+  displayFieldsForCurrentStudy["StudyDescription"] = cachedTagsForInstance[dicomTagToString(DCM_StudyDescription)];
+  displayFieldsForCurrentStudy["StudyDate"] = cachedTagsForInstance[dicomTagToString(DCM_StudyDate)];
+  displayFieldsForCurrentStudy["ModalitiesInStudy"] = cachedTagsForInstance[dicomTagToString(DCM_ModalitiesInStudy)];
+  displayFieldsForCurrentStudy["InstitutionName"] = cachedTagsForInstance[dicomTagToString(DCM_InstitutionName)];
+  displayFieldsForCurrentStudy["ReferringPhysician"] = cachedTagsForInstance[dicomTagToString(DCM_ReferringPhysicianName)];
   //TODO: Number of series
 
-  displayFieldsForCurrentSeries["SeriesInstanceUID"] = cachedTags[dicomTagToString(DCM_SeriesInstanceUID)];
-  displayFieldsForCurrentSeries["StudyInstanceUID"] = cachedTags[dicomTagToString(DCM_StudyInstanceUID)];
-  displayFieldsForCurrentSeries["SeriesNumber"] = cachedTags[dicomTagToString(DCM_SeriesNumber)];
-  displayFieldsForCurrentSeries["SeriesDescription"] = cachedTags[dicomTagToString(DCM_SeriesDescription)];
-  displayFieldsForCurrentSeries["Modality"] = cachedTags[dicomTagToString(DCM_Modality)];
-  //TODO: Number of images
+  displayFieldsForCurrentSeries["SeriesInstanceUID"] = cachedTagsForInstance[dicomTagToString(DCM_SeriesInstanceUID)];
+  displayFieldsForCurrentSeries["StudyInstanceUID"] = cachedTagsForInstance[dicomTagToString(DCM_StudyInstanceUID)];
+  displayFieldsForCurrentSeries["SeriesNumber"] = cachedTagsForInstance[dicomTagToString(DCM_SeriesNumber)];
+  displayFieldsForCurrentSeries["SeriesDescription"] = cachedTagsForInstance[dicomTagToString(DCM_SeriesDescription)];
+  displayFieldsForCurrentSeries["Modality"] = cachedTagsForInstance[dicomTagToString(DCM_Modality)];
 }
 
 //------------------------------------------------------------------------------
