@@ -39,15 +39,15 @@ public:
   ctkDICOMTableViewPrivate(ctkDICOMTableView& obj);
   ctkDICOMTableViewPrivate(ctkDICOMTableView& obj, ctkDICOMDatabase* db);
   ~ctkDICOMTableViewPrivate();
-  // Initialize UI and tableview with tablemodel
-  void init();
 
-  //Temporay solution to hide UID columns
-  void hideUIDColumns();
+  /// Initialize UI and tableview with tablemodel
+  void init();
 
   void showFilterActiveWarning(bool);
 
   QString queryTableName() const;
+
+  void applyColumnProperties();
 
   ctkDICOMDatabase* dicomDatabase;
   QSqlQueryModel dicomSQLModel;
@@ -55,7 +55,8 @@ public:
   QString queryForeignKey;
 
   QStringList currentSelection;
-  //Key = QString for columns, Values = QStringList
+
+  /// Key = QString for columns, Values = QStringList
   QHash<QString, QStringList> sqlWhereConditions;
 
 };
@@ -96,7 +97,6 @@ void ctkDICOMTableViewPrivate::init()
   this->dicomSQLFilterModel->setFilterKeyColumn(-1);
   this->dicomSQLFilterModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
   this->tblDicomDatabaseView->setModel(this->dicomSQLFilterModel);
-  this->tblDicomDatabaseView->setColumnHidden(0, true);
   this->tblDicomDatabaseView->setSortingEnabled(true);
 #if QT_VERSION < QT_VERSION_CHECK(5,0,0)
   this->tblDicomDatabaseView->horizontalHeader()->setResizeMode(QHeaderView::Interactive);
@@ -115,8 +115,7 @@ void ctkDICOMTableViewPrivate::init()
   QObject::connect(this->tblDicomDatabaseView, SIGNAL(doubleClicked(const QModelIndex&)),
                    q, SIGNAL(doubleClicked(const QModelIndex&)));
 
-  // enable right click menu, with mapping to global position (for use within the DICOM
-  // table manager)
+  // enable right click menu, with mapping to global position (for use within the DICOM table manager)
   this->tblDicomDatabaseView->setContextMenuPolicy(Qt::CustomContextMenu);
   QObject::connect(this->tblDicomDatabaseView,
                    SIGNAL(customContextMenuRequested(const QPoint&)),
@@ -126,21 +125,6 @@ void ctkDICOMTableViewPrivate::init()
                    this->dicomSQLFilterModel, SLOT(setFilterWildcard(QString)));
 
   QObject::connect(this->leSearchBox, SIGNAL(textChanged(QString)), q, SLOT(onFilterChanged()));
-}
-
-//------------------------------------------------------------------------------
-//Temporay solution to hide UID columns
-void ctkDICOMTableViewPrivate::hideUIDColumns()
-{
-  const int numberOfColumns = this->tblDicomDatabaseView->model()->columnCount();
-  for (int i = 0; i < numberOfColumns; ++i)
-    {
-    QString columnName = this->tblDicomDatabaseView->model()->headerData(i, Qt::Horizontal).toString();
-    if (columnName.contains("UID"))
-      {
-        this->tblDicomDatabaseView->hideColumn(i);
-      }
-    }
 }
 
 //----------------------------------------------------------------------------
@@ -154,14 +138,38 @@ void ctkDICOMTableViewPrivate::showFilterActiveWarning(bool showWarning)
 {
   QPalette palette;
   if (showWarning)
-    {
-      palette.setColor(QPalette::Base,Qt::yellow);
-    }
+  {
+    palette.setColor(QPalette::Base,Qt::yellow);
+  }
   else
-    {
-      palette.setColor(QPalette::Base,Qt::white);
-    }
+  {
+    palette.setColor(QPalette::Base,Qt::white);
+  }
   this->leSearchBox->setPalette(palette);
+}
+
+//----------------------------------------------------------------------------
+void ctkDICOMTableViewPrivate::applyColumnProperties()
+{
+  if (!this->dicomDatabase || !this->dicomDatabase->isOpen())
+  {
+    qCritical() << Q_FUNC_INFO << ": Database not accessible";
+    return;
+  }
+
+  int columnCount = this->dicomSQLModel.columnCount();
+  for (int col=0; col<columnCount; ++col)
+  {
+    QString columnName = this->dicomSQLModel.headerData(col, Qt::Horizontal).toString();
+    QString displayedName = this->dicomDatabase->displayedNameForField(this->queryTableName(), columnName);
+    bool visbility = this->dicomDatabase->visibilityForField(this->queryTableName(), columnName);
+    int weight = this->dicomDatabase->weightForField(this->queryTableName(), columnName);
+    QString format = this->dicomDatabase->formatForField(this->queryTableName(), columnName);
+
+    this->dicomSQLModel.setHeaderData(col, Qt::Horizontal, displayedName, Qt::DisplayRole);
+    this->tblDicomDatabaseView->setColumnHidden(col, !visbility);
+    //TODO: Apply weight and format
+  }
 }
 
 
@@ -210,16 +218,19 @@ void ctkDICOMTableView::setDicomDataBase(ctkDICOMDatabase *dicomDatabase)
 
   //Do nothing if no database is set
   if (!dicomDatabase)
+  {
     return;
+  }
 
   d->dicomDatabase = dicomDatabase;
+
   //Create connections for new database
-  QObject::connect(d->dicomDatabase, SIGNAL(instanceAdded(const QString&)),
-                   this, SLOT(onInstanceAdded()));
+  QObject::connect(d->dicomDatabase, SIGNAL(instanceAdded(const QString&)), this, SLOT(onInstanceAdded()));
   QObject::connect(d->dicomDatabase, SIGNAL(databaseChanged()), this, SLOT(onDatabaseChanged()));
 
   this->setQuery();
-  d->hideUIDColumns();
+
+  d->applyColumnProperties();
 }
 
 //------------------------------------------------------------------------------
@@ -245,7 +256,7 @@ void ctkDICOMTableView::onSelectionChanged()
 //------------------------------------------------------------------------------
 void ctkDICOMTableView::onDatabaseChanged()
 {
-  setQuery();
+  this->setQuery();
 }
 
 //------------------------------------------------------------------------------
@@ -253,7 +264,7 @@ void ctkDICOMTableView::onUpdateQuery(const QStringList& uids)
 {
   Q_D(ctkDICOMTableView);
 
-  setQuery(uids);
+  this->setQuery(uids);
 
   d->showFilterActiveWarning( d->dicomSQLFilterModel->rowCount() == 0 &&
                               d->leSearchBox->text().length() != 0 );
@@ -283,7 +294,7 @@ void ctkDICOMTableView::onInstanceAdded()
   d->sqlWhereConditions.clear();
   d->tblDicomDatabaseView->clearSelection();
   d->leSearchBox->clear();
-  setQuery();
+  this->setQuery();
 }
 
 //------------------------------------------------------------------------------
@@ -298,18 +309,18 @@ bool ctkDICOMTableView::eventFilter(QObject *obj, QEvent *event)
 {
   Q_D(ctkDICOMTableView);
   if (obj == d->tblDicomDatabaseView->viewport())
+  {
+    if (event->type() == QEvent::MouseButtonPress ||
+        event->type() == QEvent::MouseButtonDblClick)
     {
-      if (event->type() == QEvent::MouseButtonPress ||
-          event->type() == QEvent::MouseButtonDblClick)
-        {
-          QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
-          QPoint pos = mouseEvent->pos();
-          if (!d->tblDicomDatabaseView->indexAt(pos).isValid())
-            {
-              return true;
-            }
-        }
+      QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
+      QPoint pos = mouseEvent->pos();
+      if (!d->tblDicomDatabaseView->indexAt(pos).isValid())
+      {
+        return true;
+      }
     }
+  }
   return QObject::eventFilter(obj, event);
 }
 
@@ -321,27 +332,27 @@ void ctkDICOMTableView::setQuery(const QStringList &uids)
                    "Patients.UID = Studies.PatientsUID and Studies.StudyInstanceUID = Series.StudyInstanceUID");
 
   if (!uids.empty() && d->queryForeignKey.length() != 0)
-    {
-      query += " and %1."+d->queryForeignKey+" in ( '";
-      query.append(uids.join("','")).append("')");
-    }
+  {
+    query += " and %1."+d->queryForeignKey+" in ( '";
+    query.append(uids.join("','")).append("')");
+  }
   if (!d->sqlWhereConditions.empty())
+  {
+    QHash<QString, QStringList>::const_iterator i = d->sqlWhereConditions.begin();
+    while (i != d->sqlWhereConditions.end())
     {
-      QHash<QString, QStringList>::const_iterator i = d->sqlWhereConditions.begin();
-      while (i != d->sqlWhereConditions.end())
-        {
-          if (!i.value().empty())
-            {
-              query += " and "+i.key()+" in ( '";
-              query.append(i.value().join("','")).append("')");
-            }
-          ++i;
-        }
+      if (!i.value().empty())
+      {
+        query += " and "+i.key()+" in ( '";
+        query.append(i.value().join("','")).append("')");
+      }
+      ++i;
     }
+  }
   if (d->dicomDatabase != 0 && d->dicomDatabase->isOpen())
-    {
+  {
     d->dicomSQLModel.setQuery(query.arg(d->queryTableName()), d->dicomDatabase->database());
-    }
+  }
 }
 
 void ctkDICOMTableView::addSqlWhereCondition(const std::pair<QString, QStringList> &condition)
@@ -358,17 +369,17 @@ QStringList ctkDICOMTableView::uidsForAllRows() const
   int numberOfRows = tableModel->rowCount();
   QStringList uids;
   if (numberOfRows == 0)
-    {
-      //Return invalid UID if there are no rows
-      uids << QString("#");
-    }
+  {
+    //Return invalid UID if there are no rows
+    uids << QString("#");
+  }
   else
+  {
+    for(int i = 0; i < numberOfRows; ++i)
     {
-      for(int i = 0; i < numberOfRows; ++i)
-        {
-          uids << QString("%1").arg(tableModel->index(i,0).data().toString());
-        }
+      uids << QString("%1").arg(tableModel->index(i,0).data().toString());
     }
+  }
   return uids;
 }
 
@@ -381,9 +392,9 @@ QStringList ctkDICOMTableView::currentSelection() const
   QStringList uids;
 
   foreach(QModelIndex i, currentSelection)
-    {
-      uids<< i.data().toString();
-    }
+  {
+    uids << i.data().toString();
+  }
 
   return  uids;
 }
