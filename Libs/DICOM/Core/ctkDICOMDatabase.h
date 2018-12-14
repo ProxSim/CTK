@@ -265,12 +265,20 @@ public:
 
   /// Get displayed name of a given field
   Q_INVOKABLE QString displayedNameForField(QString table, QString field) const;
+  /// Set displayed name of a given field
+  Q_INVOKABLE void setDisplayedNameForField(QString table, QString field, QString displayedName);
   /// Get visibility of a given field
   Q_INVOKABLE bool visibilityForField(QString table, QString field) const;
+  /// Set visibility of a given field
+  Q_INVOKABLE void setVisibilityForField(QString table, QString field, bool visibility);
   /// Get weight of a given field
   Q_INVOKABLE int weightForField(QString table, QString field) const;
+  /// Set weight of a given field
+  Q_INVOKABLE void setWeightForField(QString table, QString field, int weight);
   /// Get format of a given field
   Q_INVOKABLE QString formatForField(QString table, QString field) const;
+  /// Set format of a given field
+  Q_INVOKABLE void setFormatForField(QString table, QString field, QString format);
 
 Q_SIGNALS:
   /// Things inserted to database.

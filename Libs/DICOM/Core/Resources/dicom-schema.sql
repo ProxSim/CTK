@@ -103,12 +103,12 @@ INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'PatientsName',        
 INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'PatientID',                       'Patient ID',           1, 2, '');
 INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'PatientsBirthDate',               'Birth date',           1, 3, '');
 INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'PatientsBirthTime',               'Birth time',           0, 0, '');
-INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'PatientsSex',                     'Sex',                  0, 0, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'PatientsSex',                     'Sex',                  1, 4, '');
 INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'PatientsAge',                     'Age',                  0, 0, '');
 INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'PatientsComments',                'Comments',             0, 0, '');
-INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'InsertTimestamp',                 'Date added',           1, 5, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'InsertTimestamp',                 'Date added',           1, 6, '');
 INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'DisplayedPatientsName',           'Patient name',         1, 1, '');
-INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'DisplayedNumberOfStudies',        'Number of studies',    1, 4, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'DisplayedNumberOfStudies',        'Number of studies',    1, 5, '');
 INSERT INTO 'ColumnDisplayProperties' VALUES('Patients', 'DisplayedFieldsUpdatedTimestamp', '',                     0, 0, '');
 
 INSERT INTO 'ColumnDisplayProperties' VALUES('Studies',  'StudyInstanceUID',                '',                     0, 0, '');

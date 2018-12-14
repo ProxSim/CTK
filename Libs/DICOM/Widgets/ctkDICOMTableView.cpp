@@ -157,11 +157,24 @@ void ctkDICOMTableViewPrivate::applyColumnProperties()
     return;
   }
 
+  QHeaderView* header = this->tblDicomDatabaseView->horizontalHeader();
   int columnCount = this->dicomSQLModel.columnCount();
   QList<int> columnWeights;
+  QMap<int,int> visualIndexToColumnIndexMap;
   for (int col=0; col<columnCount; ++col)
   {
     QString columnName = this->dicomSQLModel.headerData(col, Qt::Horizontal).toString();
+    QString originalColumnName = this->dicomSQLModel.headerData(col, Qt::Horizontal, Qt::WhatsThisRole).toString();
+    if (originalColumnName.isEmpty())
+    {
+      // Save original column name for future referencing the database fields
+      this->dicomSQLModel.setHeaderData(col, Qt::Horizontal, columnName, Qt::WhatsThisRole);
+    }
+    else
+    {
+      columnName = originalColumnName;
+      visualIndexToColumnIndexMap[header->visualIndex(col)] = col;
+    }
 
     // Apply displayed name
     QString displayedName = this->dicomDatabase->displayedNameForField(this->queryTableName(), columnName);
@@ -179,8 +192,25 @@ void ctkDICOMTableViewPrivate::applyColumnProperties()
     //TODO: Apply format
   }
 
+  // First restore original order of the columns so that it can be sorted by weights (use bubble sort).
+  // This extra complexity is needed because the only mechanism for column order is by moving or swapping
+  if (!visualIndexToColumnIndexMap.isEmpty())
+  {
+    QList<int> columnIndicesByVisualIndex = visualIndexToColumnIndexMap.values();
+    for (int i=0; i<columnCount-1; ++i)
+    {
+      // Last i elements are already in place    
+      for (int j=0; j<columnCount-i-1; ++j)
+      {
+        if (columnIndicesByVisualIndex[j] > columnIndicesByVisualIndex[j+1])
+        {
+          columnIndicesByVisualIndex.swap(j, j+1);
+          header->swapSections(j, j+1);
+        }
+      }
+    }
+  }
   // Change column order according to weights (use bubble sort)
-  QHeaderView* header = this->tblDicomDatabaseView->horizontalHeader();
   for (int i=0; i<columnCount-1; ++i)
   {
     // Last i elements are already in place    
@@ -279,7 +309,11 @@ void ctkDICOMTableView::onSelectionChanged()
 //------------------------------------------------------------------------------
 void ctkDICOMTableView::onDatabaseChanged()
 {
+  Q_D(ctkDICOMTableView);
+
   this->setQuery();
+
+  d->applyColumnProperties();
 }
 
 //------------------------------------------------------------------------------

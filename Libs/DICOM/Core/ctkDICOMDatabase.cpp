@@ -2367,6 +2367,29 @@ QString ctkDICOMDatabase::displayedNameForField(QString table, QString field) co
 }
 
 //------------------------------------------------------------------------------
+void ctkDICOMDatabase::setDisplayedNameForField(QString table, QString field, QString displayedName)
+{
+  Q_D(ctkDICOMDatabase);
+
+  if (!this->isOpen())
+  {
+    logger.warn("Database needs to be open to set column display properties");
+    return;
+  }
+
+  QSqlQuery query(d->Database);
+  QString statement = QString("UPDATE ColumnDisplayProperties SET DisplayedName='%1' WHERE TableName='%2' AND FieldName='%3';")
+    .arg(displayedName).arg(table).arg(field);
+  if (!d->loggedExec(query, statement))
+  {
+    logger.error("SQLITE ERROR: " + query.lastError().driverText());
+    return;
+  }
+
+  emit databaseChanged();
+}
+
+//------------------------------------------------------------------------------
 bool ctkDICOMDatabase::visibilityForField(QString table, QString field) const
 {
   Q_D(const ctkDICOMDatabase);
@@ -2381,6 +2404,29 @@ bool ctkDICOMDatabase::visibilityForField(QString table, QString field) const
 
   query.first();
   return (query.value(0).toInt() != 0);
+}
+
+//------------------------------------------------------------------------------
+void ctkDICOMDatabase::setVisibilityForField(QString table, QString field, bool visibility)
+{
+  Q_D(ctkDICOMDatabase);
+
+  if (!this->isOpen())
+  {
+    logger.warn("Database needs to be open to set column display properties");
+    return;
+  }
+
+  QSqlQuery query(d->Database);
+  QString statement = QString("UPDATE ColumnDisplayProperties SET Visibility=%1 WHERE TableName='%2' AND FieldName='%3';")
+    .arg(QString::number((int)visibility)).arg(table).arg(field);
+  if (!d->loggedExec(query, statement))
+  {
+    logger.error("SQLITE ERROR: " + query.lastError().driverText());
+    return;
+  }
+
+  emit databaseChanged();
 }
 
 //------------------------------------------------------------------------------
@@ -2401,6 +2447,29 @@ int ctkDICOMDatabase::weightForField(QString table, QString field) const
 }
 
 //------------------------------------------------------------------------------
+void ctkDICOMDatabase::setWeightForField(QString table, QString field, int weight)
+{
+  Q_D(ctkDICOMDatabase);
+
+  if (!this->isOpen())
+  {
+    logger.warn("Database needs to be open to set column display properties");
+    return;
+  }
+
+  QSqlQuery query(d->Database);
+  QString statement = QString("UPDATE ColumnDisplayProperties SET Weight=%1 WHERE TableName='%2' AND FieldName='%3';")
+    .arg(QString::number(weight)).arg(table).arg(field);
+  if (!d->loggedExec(query, statement))
+  {
+    logger.error("SQLITE ERROR: " + query.lastError().driverText());
+    return;
+  }
+
+  emit databaseChanged();
+}
+
+//------------------------------------------------------------------------------
 QString ctkDICOMDatabase::formatForField(QString table, QString field) const
 {
   Q_D(const ctkDICOMDatabase);
@@ -2415,4 +2484,27 @@ QString ctkDICOMDatabase::formatForField(QString table, QString field) const
 
   query.first();
   return query.value(0).toString();
+}
+
+//------------------------------------------------------------------------------
+void ctkDICOMDatabase::setFormatForField(QString table, QString field, QString format)
+{
+  Q_D(ctkDICOMDatabase);
+
+  if (!this->isOpen())
+  {
+    logger.warn("Database needs to be open to set column display properties");
+    return;
+  }
+
+  QSqlQuery query(d->Database);
+  QString statement = QString("UPDATE ColumnDisplayProperties SET Format='%1' WHERE TableName='%2' AND FieldName='%3';")
+    .arg(format).arg(table).arg(field);
+  if (!d->loggedExec(query, statement))
+  {
+    logger.error("SQLITE ERROR: " + query.lastError().driverText());
+    return;
+  }
+
+  emit databaseChanged();
 }
