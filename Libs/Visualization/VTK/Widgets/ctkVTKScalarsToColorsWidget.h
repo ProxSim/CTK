@@ -68,14 +68,14 @@ public:
   Q_INVOKABLE ctkVTKScalarsToColorsView* view()const;
   Q_INVOKABLE vtkControlPointsItem* currentControlPointsItem()const;
 
-  bool isHorizontalSliderVisible()const;
-  void setHorizontalSliderVisible(bool visible);
+  Q_INVOKABLE bool isHorizontalSliderVisible()const;
+  Q_INVOKABLE void setHorizontalSliderVisible(bool visible);
 
-  bool isVerticalSliderVisible()const;
-  void setVerticalSliderVisible(bool visible);
+  Q_INVOKABLE bool isVerticalSliderVisible()const;
+  Q_INVOKABLE void setVerticalSliderVisible(bool visible);
   
-  bool editColors()const;
-  void setEditColors(bool edit);
+  Q_INVOKABLE bool editColors()const;
+  Q_INVOKABLE void setEditColors(bool edit);
   
   Q_INVOKABLE void xRange(double* range)const;
   Q_INVOKABLE void yRange(double* range)const;
@@ -103,11 +103,11 @@ public:
   Q_INVOKABLE void addExtraWidget(QWidget* extraWidget);
 
 public Q_SLOTS:
-  void setCurrentControlPointsItem(vtkControlPointsItem* item);
-  void setCurrentPoint(int pointId);
-  void setXRange(double min, double max);
-  void setYRange(double min, double max);
-  void resetRange();
+  Q_INVOKABLE void setCurrentControlPointsItem(vtkControlPointsItem* item);
+  Q_INVOKABLE void setCurrentPoint(int pointId);
+  Q_INVOKABLE void setXRange(double min, double max);
+  Q_INVOKABLE void setYRange(double min, double max);
+  Q_INVOKABLE void resetRange();
 
 Q_SIGNALS:
   /// Be carefull, axesModified() can be fired inside the Render() function
