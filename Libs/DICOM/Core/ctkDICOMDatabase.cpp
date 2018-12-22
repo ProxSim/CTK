@@ -129,8 +129,16 @@ public:
   /// Get all Filename values from table
   QStringList filenames(QString table);
 
-  /// Calculate number of images for given series display fields maps
-  void setNumberOfImagesToSeriesDisplayFieldsMap(QMap<QString, QMap<QString, QString> > &displayFieldsMapSeries);
+  QVector<QMap<QString /*DisplayField*/, QString /*Value*/> > displayFieldsVectorPatient; // The index in the vector is the internal patient UID
+  /// Calculate number of images for each series in the display fields container
+  /// \param displayFieldsMapSeries (SeriesInstanceUID -> (DisplayField -> Value) )
+  void setNumberOfImagesToSeriesDisplayFields(QMap<QString, QMap<QString, QString> > &displayFieldsMapSeries);
+  /// Calculate number of series for each study in the display fields container
+  /// \param displayFieldsMapStudy (StudyInstanceUID -> (DisplayField -> Value) )
+  void setNumberOfSeriesToStudyDisplayFields(QMap<QString, QMap<QString, QString> > &displayFieldsMapStudy);
+  /// Calculate number of studies for each patient in the display fields container
+  /// \param displayFieldsVectorPatient (Internal_ID -> (DisplayField -> Value) )
+  void setNumberOfStudiesToPatientDisplayFields(QVector<QMap<QString, QString> > &displayFieldsVectorPatient);
 
   /// Name of the database file (i.e. for SQLITE the sqlite file)
   QString DatabaseFileName;
@@ -1116,7 +1124,7 @@ bool ctkDICOMDatabasePrivate::applyDisplayFieldsChanges( QMap<QString, QMap<QStr
 }
 
 //------------------------------------------------------------------------------
-void ctkDICOMDatabasePrivate::setNumberOfImagesToSeriesDisplayFieldsMap(QMap<QString, QMap<QString, QString> > &displayFieldsMapSeries)
+void ctkDICOMDatabasePrivate::setNumberOfImagesToSeriesDisplayFields(QMap<QString, QMap<QString, QString> > &displayFieldsMapSeries)
 {
   foreach (QString currentSeriesInstanceUid, displayFieldsMapSeries.keys())
   {
@@ -1136,6 +1144,53 @@ void ctkDICOMDatabasePrivate::setNumberOfImagesToSeriesDisplayFieldsMap(QMap<QSt
     QMap<QString, QString> displayFieldsForCurrentSeries = displayFieldsMapSeries[currentSeriesInstanceUid];
     displayFieldsForCurrentSeries["DisplayedNumberOfImages"] = QString::number(currentNumberOfImages);
     displayFieldsMapSeries[currentSeriesInstanceUid] = displayFieldsForCurrentSeries;
+  }
+}
+
+//------------------------------------------------------------------------------
+void ctkDICOMDatabasePrivate::setNumberOfSeriesToStudyDisplayFields(QMap<QString, QMap<QString, QString> > &displayFieldsMapStudy)
+{
+  foreach (QString currentStudyInstanceUid, displayFieldsMapStudy.keys())
+  {
+    QSqlQuery numberOfSeriesQuery(
+      QString("SELECT COUNT(*) FROM Series WHERE StudyInstanceUID='%1';").arg(currentStudyInstanceUid),
+      this->Database );
+    if (!numberOfSeriesQuery.exec())
+    {
+      logger.error("SQLITE ERROR: " + numberOfSeriesQuery.lastError().driverText());
+      continue;
+    }
+
+    numberOfSeriesQuery.first();
+    int currentNumberOfSeries = numberOfSeriesQuery.value(0).toInt();
+
+    QMap<QString, QString> displayFieldsForCurrentStudy = displayFieldsMapStudy[currentStudyInstanceUid];
+    displayFieldsForCurrentStudy["DisplayedNumberOfSeries"] = QString::number(currentNumberOfSeries);
+    displayFieldsMapStudy[currentStudyInstanceUid] = displayFieldsForCurrentStudy;
+  }
+}
+
+//------------------------------------------------------------------------------
+void ctkDICOMDatabasePrivate::setNumberOfStudiesToPatientDisplayFields(QVector<QMap<QString, QString> > &displayFieldsVectorPatient)
+{
+  for (int patientIndex=0; patientIndex<displayFieldsVectorPatient.size(); ++patientIndex)
+  {
+    QMap<QString, QString> displayFieldsForCurrentPatient = displayFieldsVectorPatient[patientIndex];
+    int patientUID = displayFieldsForCurrentPatient["UID"].toInt();
+    QSqlQuery numberOfStudiesQuery(
+      QString("SELECT COUNT(*) FROM Studies WHERE PatientsUID='%1';").arg(patientUID),
+      this->Database );
+    if (!numberOfStudiesQuery.exec())
+    {
+      logger.error("SQLITE ERROR: " + numberOfStudiesQuery.lastError().driverText());
+      continue;
+    }
+
+    numberOfStudiesQuery.first();
+    int currentNumberOfStudies = numberOfStudiesQuery.value(0).toInt();
+
+    displayFieldsForCurrentPatient["DisplayedNumberOfStudies"] = QString::number(currentNumberOfStudies);
+    displayFieldsVectorPatient[patientIndex] = displayFieldsForCurrentPatient;
   }
 }
 
@@ -2326,7 +2381,11 @@ void ctkDICOMDatabase::updateDisplayedFields()
   } // For each instance
 
   // Calculate number of images in each updated series
-  d->setNumberOfImagesToSeriesDisplayFieldsMap(displayFieldsMapSeries);
+  d->setNumberOfImagesToSeriesDisplayFields(displayFieldsMapSeries);
+  // Calculate number of series in each updated study
+  d->setNumberOfSeriesToStudyDisplayFields(displayFieldsMapStudy);
+  // Calculate number of studies in each updated patient
+  d->setNumberOfStudiesToPatientDisplayFields(displayFieldsVectorPatient);
 
   // Update/insert the display values
   if (displayFieldsMapSeries.count() > 0)
