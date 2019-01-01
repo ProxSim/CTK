@@ -22,7 +22,7 @@ DROP INDEX IF EXISTS 'SeriesStudyIndex' ;
 DROP INDEX IF EXISTS 'StudiesPatientIndex' ;
 
 CREATE TABLE 'SchemaInfo' ( 'Version' VARCHAR(1024) NOT NULL );
-INSERT INTO 'SchemaInfo' VALUES('0.6.0');
+INSERT INTO 'SchemaInfo' VALUES('0.6.1');
 
 CREATE TABLE 'Images' (
   'SOPInstanceUID' VARCHAR(64) NOT NULL,
@@ -77,6 +77,8 @@ CREATE TABLE 'Series' (
   'TemporalPosition' INT NULL ,
   'InsertTimestamp' VARCHAR(20) NOT NULL ,
   'DisplayedNumberOfImages' INT NULL ,
+  'DisplayedSize' VARCHAR(20) NULL ,
+  'DisplayedNumberOfFrames' INT NULL ,
   'DisplayedFieldsUpdatedTimestamp' DATETIME NULL ,
   PRIMARY KEY ('SeriesInstanceUID') );
 
@@ -140,6 +142,8 @@ INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'ContrastAgent',       
 INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'ScanningSequence',                'Scanning sequence',    0, 0, '');
 INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'EchoNumber',                      'Echo #',               0, 0, '');
 INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'TemporalPosition',                'Temporal position',    0, 0, '');
-INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'InsertTimestamp',                 'Date added',           1, 5, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'InsertTimestamp',                 'Date added',           1, 6, '');
 INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'DisplayedNumberOfImages',         'Number of images',     1, 4, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'DisplayedSize',                   'Size',                 1, 5, '');
+INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'DisplayedNumberOfFrames',         'Number of frames',     0, 0, '');
 INSERT INTO 'ColumnDisplayProperties' VALUES('Series',   'DisplayedFieldsUpdatedTimestamp', '',                     0, 0, '');

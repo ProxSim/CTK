@@ -510,9 +510,8 @@ void ctkDICOMDatabasePrivate::insertSeries(const ctkDICOMItem& ctkDataset, QStri
     QSqlQuery insertSeriesStatement(this->Database);
     insertSeriesStatement.prepare( "INSERT INTO Series "
       "( 'SeriesInstanceUID', 'StudyInstanceUID', 'SeriesNumber', 'SeriesDate', 'SeriesTime', 'SeriesDescription', 'Modality', 'BodyPartExamined', "
-        "'FrameOfReferenceUID', 'AcquisitionNumber', 'ContrastAgent', 'ScanningSequence', 'EchoNumber', 'TemporalPosition', "
-        "'InsertTimestamp', 'DisplayedNumberOfImages', 'DisplayedFieldsUpdatedTimestamp' ) "
-      "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL )" );
+        "'FrameOfReferenceUID', 'AcquisitionNumber', 'ContrastAgent', 'ScanningSequence', 'EchoNumber', 'TemporalPosition', 'InsertTimestamp' ) "
+      "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )" );
     insertSeriesStatement.bindValue( 0, seriesInstanceUID );
     insertSeriesStatement.bindValue( 1, studyInstanceUID );
     insertSeriesStatement.bindValue( 2, static_cast<int>(seriesNumber) );
@@ -1312,7 +1311,7 @@ ctkDICOMAbstractThumbnailGenerator* ctkDICOMDatabase::thumbnailGenerator(){
 }
 
 //------------------------------------------------------------------------------
-bool ctkDICOMDatabase::initializeDatabase(const char* sqlFileName)
+bool ctkDICOMDatabase::initializeDatabase(const char* sqlFileName/* = ":/dicom/dicom-schema.sql" */)
 {
   Q_D(ctkDICOMDatabase);
 
@@ -1354,11 +1353,11 @@ QString ctkDICOMDatabase::schemaVersion()
   //   so that the ctkDICOMDatabasePrivate::filenames method
   //   still works.
   //
-  return QString("0.6.0");
+  return QString("0.6.1");
 };
 
 //------------------------------------------------------------------------------
-bool ctkDICOMDatabase::updateSchemaIfNeeded(const char* schemaFile)
+bool ctkDICOMDatabase::updateSchemaIfNeeded(const char* schemaFile/* = ":/dicom/dicom-schema.sql" */)
 {
   if ( schemaVersionLoaded() != schemaVersion() )
   {
@@ -1373,7 +1372,7 @@ bool ctkDICOMDatabase::updateSchemaIfNeeded(const char* schemaFile)
 }
 
 //------------------------------------------------------------------------------
-bool ctkDICOMDatabase::updateSchema(const char* schemaFile)
+bool ctkDICOMDatabase::updateSchema(const char* schemaFile/* = ":/dicom/dicom-schema.sql" */)
 {
   // backup filelist
   // reinit with the new schema
@@ -1399,6 +1398,10 @@ bool ctkDICOMDatabase::updateSchema(const char* schemaFile)
 
     progressValue++;
   }
+
+  // Update displayed fields in the updated database
+  this->updateDisplayedFields();
+
   // TODO: check better that everything is ok
   d->removeBackupFileList();
   emit schemaUpdated();
@@ -2390,6 +2393,10 @@ void ctkDICOMDatabase::updateDisplayedFields()
   // Update/insert the display values
   if (displayFieldsMapSeries.count() > 0)
   {
+    QSqlQuery transaction(d->Database);
+    transaction.prepare("BEGIN TRANSACTION");
+    transaction.exec();
+
     if (d->applyDisplayFieldsChanges(displayFieldsMapSeries, displayFieldsMapStudy, displayFieldsVectorPatient))
     {
       // Update image timestamp
@@ -2403,6 +2410,10 @@ void ctkDICOMDatabase::updateDisplayedFields()
         d->loggedExec(updateDisplayedFieldsUpdatedTimestampStatement, updateDisplayedFieldsUpdatedTimestampStatementString);
       }
     }
+
+    transaction = QSqlQuery(d->Database);
+    transaction.prepare("END TRANSACTION");
+    transaction.exec();
   }
 
   emit databaseChanged();
