@@ -18,9 +18,6 @@
 
 =========================================================================*/
 
-// std includes
-#include <iostream>
-
 // Qt includes
 #include <QAction>
 #include <QApplication>
@@ -30,6 +27,7 @@
 #include <QDebug>
 #include <QDialogButtonBox>
 #include <QFile>
+#include <QFileSystemModel>
 #include <QFormLayout>
 #include <QListView>
 #include <QMenu>
@@ -177,8 +175,7 @@ void ctkDICOMBrowserPrivate::showUpdateSchemaDialog()
     // Set up the Update Schema Progress Dialog
     //
     UpdateSchemaProgress = new QProgressDialog(
-        q->tr("DICOM Schema Update"), "Cancel", 0, 100, q,
-         Qt::WindowTitleHint | Qt::WindowSystemMenuHint);
+      q->tr("DICOM Schema Update"), "Cancel", 0, 100, q, Qt::WindowTitleHint | Qt::WindowSystemMenuHint);
 
     // We don't want the progress dialog to resize itself, so we bypass the label
     // by creating our own
@@ -271,14 +268,16 @@ ctkDICOMBrowser::ctkDICOMBrowser(QWidget* _parent):Superclass(_parent),
   connect(d->tableDensityComboBox ,SIGNAL(currentIndexChanged (const QString&)),
      this, SLOT(onTablesDensityComboBox(QString)));
 
-  //Set ToolBar button style
+  connect(d->DirectoryButton, SIGNAL(directoryChanged(QString)), this, SLOT(setDatabaseDirectory(QString)));
+
+  // Set ToolBar button style
   d->ToolBar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
-  //Initialize Q/R widget
+  // Initialize Q/R widget
   d->QueryRetrieveWidget = new ctkDICOMQueryRetrieveWidget();
   d->QueryRetrieveWidget->setWindowModality ( Qt::ApplicationModal );
 
-  //initialize directory from settings, then listen for changes
+  // initialize directory from settings, then listen for changes
   QSettings settings;
   if ( settings.value(Self::databaseDirectorySettingsKey(), "") == "" )
     {
@@ -287,6 +286,7 @@ ctkDICOMBrowser::ctkDICOMBrowser(QWidget* _parent):Superclass(_parent),
     }
   QString databaseDirectory = this->databaseDirectory();
   this->setDatabaseDirectory(databaseDirectory);
+  databaseDirectory = this->databaseDirectory(); // In case a new database has been created instead of updating schema
   d->DirectoryButton->setDirectory(databaseDirectory);
 
   d->dicomTableManager->setDICOMDatabase(d->DICOMDatabase.data());
@@ -306,8 +306,6 @@ ctkDICOMBrowser::ctkDICOMBrowser(QWidget* _parent):Superclass(_parent),
           this, SLOT(onStudiesRightClicked(const QPoint&)));
   connect(d->dicomTableManager, SIGNAL(seriesRightClicked(const QPoint&)),
           this, SLOT(onSeriesRightClicked(const QPoint&)));
-
-  connect(d->DirectoryButton, SIGNAL(directoryChanged(QString)), this, SLOT(setDatabaseDirectory(QString)));
 
   // Initialize directoryMode widget
   QFormLayout *layout = new QFormLayout;
@@ -405,13 +403,98 @@ int ctkDICOMBrowser::instancesAddedDuringImport()
 }
 
 //----------------------------------------------------------------------------
-void ctkDICOMBrowser::updateDatabaseSchemaIfNeeded()
+bool ctkDICOMBrowser::updateDatabaseSchemaIfNeeded()
 {
-
   Q_D(ctkDICOMBrowser);
 
-  d->showUpdateSchemaDialog();
-  d->DICOMDatabase->updateSchemaIfNeeded();
+  if (d->DICOMDatabase->schemaVersionLoaded() != d->DICOMDatabase->schemaVersion())
+  {
+  ctkDICOMBrowser::SchemaUpdateOption updateOption = this->schemaUpdateOption();
+    bool updateSchema = (updateOption == ctkDICOMBrowser::AlwaysUpdate);
+    if (updateOption == ctkDICOMBrowser::AskUser)
+    {
+      QString messageText = QString("DICOM database at location (%1) is incompatible with this version of the software.\n"
+        "Updating the database may take several minutes.\n\nAlternatively you may create a new, empty database (the old one will not be modified).")
+        .arg(this->databaseDirectory());
+      ctkMessageBox schemaUpdateMsgBox;
+      schemaUpdateMsgBox.setWindowTitle(tr("DICOM database update"));
+      schemaUpdateMsgBox.setText(messageText);
+      QPushButton* updateButton = schemaUpdateMsgBox.addButton(tr(" Update database "), QMessageBox::AcceptRole);
+      QPushButton* createButton = schemaUpdateMsgBox.addButton(tr(" Create new database "), QMessageBox::RejectRole);
+      schemaUpdateMsgBox.setDefaultButton(updateButton);
+      schemaUpdateMsgBox.exec();
+      if (schemaUpdateMsgBox.clickedButton() == updateButton)
+      {
+        updateSchema = true;
+      }
+      else
+      {
+        // Have user select new database folder
+        // (cannot simply call d->DirectoryButton->browse() because it will cause circular calls)
+
+        // See https://bugreports.qt-project.org/browse/QTBUG-10244
+        class ExcludeReadOnlyFilterProxyModel : public QSortFilterProxyModel
+        {
+        public:
+          ExcludeReadOnlyFilterProxyModel(QPalette palette, QObject *parent)
+            : QSortFilterProxyModel(parent)
+            , Palette(palette)
+          {
+          }
+          virtual Qt::ItemFlags flags(const QModelIndex& index)const
+          {
+            QString filePath =
+              this->sourceModel()->data(this->mapToSource(index), QFileSystemModel::FilePathRole).toString();
+            if (!QFileInfo(filePath).isWritable())
+              {
+              // Double clickable (to open) but can't be "chosen".
+              return Qt::ItemIsSelectable;
+              }
+            return this->QSortFilterProxyModel::flags(index);
+          }
+          QPalette Palette;
+        };
+
+        QScopedPointer<ctkFileDialog> fileDialog(
+          new ctkFileDialog(this, "Select empty folder for new DICOM database", this->databaseDirectory()));
+#ifdef USE_QFILEDIALOG_OPTIONS
+        fileDialog->setOptions(QFileDialog::ShowDirsOnly;
+#else
+        fileDialog->setOptions(QFlags<QFileDialog::Option>(int(ctkDirectoryButton::ShowDirsOnly)));
+#endif
+        fileDialog->setAcceptMode(QFileDialog::AcceptSave);
+        fileDialog->setFileMode(QFileDialog::DirectoryOnly);
+        // Gray out the non-writable folders. They are still openable with double click,
+        // but they can't be selected because they don't have the ItemIsEnabled
+        // flag and because ctkFileDialog would not let it to be selected.
+        fileDialog->setProxyModel(
+          new ExcludeReadOnlyFilterProxyModel(this->palette(), fileDialog.data()));
+
+        QString dir;
+        if (fileDialog->exec())
+        {
+          dir = fileDialog->selectedFiles().at(0);
+        }
+        // An empty directory means either that the user canceled the dialog or the selected directory is readonly
+        if (dir.isEmpty())
+        {
+          qCritical() << Q_FUNC_INFO << ": Either user canceled database folder dialog or the selected directory is readonly";
+          return false;
+        }
+
+        this->setDatabaseDirectory(dir);
+        return true;
+      }
+    }
+
+    if (updateSchema)
+    {
+      d->showUpdateSchemaDialog();
+      d->DICOMDatabase->updateSchema();
+    }
+  }
+
+  return false;
 }
 
 //----------------------------------------------------------------------------
@@ -421,34 +504,38 @@ void ctkDICOMBrowser::setDatabaseDirectory(const QString& directory)
 
   // If needed, create database directory
   if (!QDir(directory).exists())
-    {
+  {
     QDir().mkdir(directory);
-    }
+  }
 
   QSettings settings;
   settings.setValue(Self::databaseDirectorySettingsKey(), directory);
   settings.sync();
 
-  //close the active DICOM database
+  // close the active DICOM database
   d->DICOMDatabase->closeDatabase();
 
-  //open DICOM database on the directory
+  // open DICOM database on the directory
   QString databaseFileName = directory + QString("/ctkDICOM.sql");
   try
-    {
+  {
     d->DICOMDatabase->openDatabase( databaseFileName );
-    }
+  }
   catch (std::exception e)
-    {
+  {
     std::cerr << "Database error: " << qPrintable(d->DICOMDatabase->lastError()) << "\n";
     d->DICOMDatabase->closeDatabase();
     return;
-    }
+  }
 
   // update the database schema if needed and provide progress
-  this->updateDatabaseSchemaIfNeeded();
+  if (this->updateDatabaseSchemaIfNeeded())
+  {
+    // If new database is selected then do not make the calls below here to prevent circular calls
+    return;
+  }
 
-  //pass DICOM database instance to Import widget
+  // pass DICOM database instance to Import widget
   d->QueryRetrieveWidget->setRetrieveDatabase(d->DICOMDatabase);
 
   // update the button and let any connected slots know about the change
@@ -524,7 +611,6 @@ void ctkDICOMBrowser::openQueryDialog()
 
   d->QueryRetrieveWidget->show();
   d->QueryRetrieveWidget->raise();
-
 }
 
 //----------------------------------------------------------------------------
@@ -589,7 +675,6 @@ void ctkDICOMBrowser::onRepairAction()
     repairMessageBox->addButton(QMessageBox::Ok);
     repairMessageBox->exec();
   }
-
   else
   {
     repairMessageBox->addButton(QMessageBox::Yes);
@@ -787,12 +872,11 @@ ctkFileDialog* ctkDICOMBrowser::importDialog() const
 ctkDICOMBrowser::ImportDirectoryMode ctkDICOMBrowser::importDirectoryMode()const
 {
   Q_D(const ctkDICOMBrowser);
-  ctkDICOMBrowserPrivate* mutable_d =
-    const_cast<ctkDICOMBrowserPrivate*>(d);
+  ctkDICOMBrowserPrivate* mutable_d = const_cast<ctkDICOMBrowserPrivate*>(d);
   mutable_d->importOldSettings();
   QSettings settings;
   return static_cast<ctkDICOMBrowser::ImportDirectoryMode>(settings.value(
-        "DICOM/ImportDirectoryMode", static_cast<int>(ctkDICOMBrowser::ImportDirectoryAddLink)).toInt());
+    "DICOM/ImportDirectoryMode", static_cast<int>(ctkDICOMBrowser::ImportDirectoryAddLink)).toInt() );
 }
 
 //----------------------------------------------------------------------------
@@ -808,6 +892,24 @@ void ctkDICOMBrowser::setImportDirectoryMode(ctkDICOMBrowser::ImportDirectoryMod
     }
   QComboBox* comboBox = d->ImportDialog->bottomWidget()->findChild<QComboBox*>();
   comboBox->setCurrentIndex(comboBox->findData(mode));
+}
+
+//----------------------------------------------------------------------------
+ctkDICOMBrowser::SchemaUpdateOption ctkDICOMBrowser::schemaUpdateOption()const
+{
+  Q_D(const ctkDICOMBrowser);
+  QSettings settings;
+  return static_cast<ctkDICOMBrowser::SchemaUpdateOption>(settings.value(
+    "DICOM/SchemaUpdateOption", static_cast<int>(ctkDICOMBrowser::AlwaysUpdate)).toInt() );
+}
+
+//----------------------------------------------------------------------------
+void ctkDICOMBrowser::setSchemaUpdateOption(ctkDICOMBrowser::SchemaUpdateOption option)
+{
+  Q_D(ctkDICOMBrowser);
+
+  QSettings settings;
+  settings.setValue("DICOM/SchemaUpdateOption", static_cast<int>(option));
 }
 
 //----------------------------------------------------------------------------
