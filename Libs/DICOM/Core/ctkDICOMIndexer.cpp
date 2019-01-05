@@ -162,6 +162,7 @@ void ctkDICOMIndexer::addListOfFiles(ctkDICOMDatabase& database,
   }
 
   // Update displayed fields according to inserted DICOM datasets
+  emit displayFieldsUpdateStarted();
   database.updateDisplayedFields();
 
   float elapsedTimeInSeconds = timeProbe.elapsed() / 1000.0;
