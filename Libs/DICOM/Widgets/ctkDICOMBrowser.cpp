@@ -82,6 +82,7 @@ public:
   QSharedPointer<ctkDICOMIndexer> DICOMIndexer;
   QProgressDialog *IndexerProgress;
   QProgressDialog *UpdateSchemaProgress;
+  QProgressDialog *UpdateDisplayFieldsProgress;
   QProgressDialog *ExportProgress;
 
   void showIndexerDialog();
@@ -140,6 +141,7 @@ ctkDICOMBrowserPrivate::ctkDICOMBrowserPrivate(ctkDICOMBrowser* parent): q_ptr(p
   DICOMIndexer = QSharedPointer<ctkDICOMIndexer> (new ctkDICOMIndexer);
   IndexerProgress = 0;
   UpdateSchemaProgress = 0;
+  UpdateDisplayFieldsProgress = 0;
   ExportProgress = 0;
   DisplayImportSummary = true;
   PatientsAddedDuringImport = 0;
@@ -152,17 +154,21 @@ ctkDICOMBrowserPrivate::ctkDICOMBrowserPrivate(ctkDICOMBrowser* parent): q_ptr(p
 ctkDICOMBrowserPrivate::~ctkDICOMBrowserPrivate()
 {
   if ( IndexerProgress )
-    {
+  {
     delete IndexerProgress;
-    }
+  }
   if ( UpdateSchemaProgress )
-    {
+  {
     delete UpdateSchemaProgress;
-    }
+  }
+  if ( UpdateDisplayFieldsProgress )
+  {
+    delete UpdateDisplayFieldsProgress;
+  }
   if ( ExportProgress )
-    {
+  {
     delete ExportProgress;
-    }
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -170,32 +176,27 @@ void ctkDICOMBrowserPrivate::showUpdateSchemaDialog()
 {
   Q_Q(ctkDICOMBrowser);
   if (UpdateSchemaProgress == 0)
-    {
+  {
     //
     // Set up the Update Schema Progress Dialog
     //
     UpdateSchemaProgress = new QProgressDialog(
       q->tr("DICOM Schema Update"), "Cancel", 0, 100, q, Qt::WindowTitleHint | Qt::WindowSystemMenuHint);
 
-    // We don't want the progress dialog to resize itself, so we bypass the label
-    // by creating our own
+    // We don't want the progress dialog to resize itself, so we bypass the label by creating our own
     QLabel* progressLabel = new QLabel(q->tr("Initialization..."));
     UpdateSchemaProgress->setLabel(progressLabel);
     UpdateSchemaProgress->setWindowModality(Qt::ApplicationModal);
     UpdateSchemaProgress->setMinimumDuration(0);
     UpdateSchemaProgress->setValue(0);
 
-    q->connect(DICOMDatabase.data(), SIGNAL(schemaUpdateStarted(int)),
-            UpdateSchemaProgress, SLOT(setMaximum(int)));
-    q->connect(DICOMDatabase.data(), SIGNAL(schemaUpdateProgress(int)),
-            UpdateSchemaProgress, SLOT(setValue(int)));
-    q->connect(DICOMDatabase.data(), SIGNAL(schemaUpdateProgress(QString)),
-            progressLabel, SLOT(setText(QString)));
+    q->connect(DICOMDatabase.data(), SIGNAL(schemaUpdateStarted(int)), UpdateSchemaProgress, SLOT(setMaximum(int)));
+    q->connect(DICOMDatabase.data(), SIGNAL(schemaUpdateProgress(int)), UpdateSchemaProgress, SLOT(setValue(int)));
+    q->connect(DICOMDatabase.data(), SIGNAL(schemaUpdateProgress(QString)), progressLabel, SLOT(setText(QString)));
 
     // close the dialog
-    q->connect(DICOMDatabase.data(), SIGNAL(schemaUpdated()),
-            UpdateSchemaProgress, SLOT(close()));
-    }
+    q->connect(DICOMDatabase.data(), SIGNAL(schemaUpdated()), UpdateSchemaProgress, SLOT(close()));
+  }
   UpdateSchemaProgress->show();
 }
 
@@ -204,7 +205,7 @@ void ctkDICOMBrowserPrivate::showIndexerDialog()
 {
   Q_Q(ctkDICOMBrowser);
   if (IndexerProgress == 0)
-    {
+  {
     //
     // Set up the Indexer Progress Dialog
     //
@@ -219,29 +220,21 @@ void ctkDICOMBrowserPrivate::showIndexerDialog()
     IndexerProgress->setMinimumDuration(0);
     IndexerProgress->setValue(0);
 
-    q->connect(IndexerProgress, SIGNAL(canceled()), 
-                 DICOMIndexer.data(), SLOT(cancel()));
+    q->connect(IndexerProgress, SIGNAL(canceled()), DICOMIndexer.data(), SLOT(cancel()));
 
-    q->connect(DICOMIndexer.data(), SIGNAL(progress(int)),
-            IndexerProgress, SLOT(setValue(int)));
-    q->connect(DICOMIndexer.data(), SIGNAL(indexingFilePath(QString)),
-            progressLabel, SLOT(setText(QString)));
-    q->connect(DICOMIndexer.data(), SIGNAL(indexingFilePath(QString)),
-            q, SLOT(onFileIndexed(QString)));
+    q->connect(DICOMIndexer.data(), SIGNAL(progress(int)), IndexerProgress, SLOT(setValue(int)));
+    q->connect(DICOMIndexer.data(), SIGNAL(indexingFilePath(QString)), progressLabel, SLOT(setText(QString)));
+    q->connect(DICOMIndexer.data(), SIGNAL(indexingFilePath(QString)), q, SLOT(onFileIndexed(QString)));
 
     // close the dialog
-    q->connect(DICOMIndexer.data(), SIGNAL(indexingComplete()),
-            IndexerProgress, SLOT(close()));
+    q->connect(DICOMIndexer.data(), SIGNAL(indexingComplete()), IndexerProgress, SLOT(close()));
     // stop indexing and reset the database if canceled
-    q->connect(IndexerProgress, SIGNAL(canceled()), 
-            DICOMIndexer.data(), SLOT(cancel()));
+    q->connect(IndexerProgress, SIGNAL(canceled()), DICOMIndexer.data(), SLOT(cancel()));
 
     // allow users of this widget to know that the process has finished
-    q->connect(IndexerProgress, SIGNAL(canceled()), 
-            q, SIGNAL(directoryImported()));
-    q->connect(DICOMIndexer.data(), SIGNAL(indexingComplete()),
-            q, SIGNAL(directoryImported()));
-    }
+    q->connect(IndexerProgress, SIGNAL(canceled()), q, SIGNAL(directoryImported()));
+    q->connect(DICOMIndexer.data(), SIGNAL(indexingComplete()), q, SIGNAL(directoryImported()));
+  }
   IndexerProgress->show();
 }
 
@@ -258,9 +251,8 @@ ctkDICOMBrowser::ctkDICOMBrowser(QWidget* _parent):Superclass(_parent),
 
   d->setupUi(this);
 
-  // signals related to tracking inserts
-  connect(d->DICOMDatabase.data(), SIGNAL(patientAdded(int,QString,QString,QString)), this,
-                              SLOT(onPatientAdded(int,QString,QString,QString)));
+  // Signals related to tracking inserts
+  connect(d->DICOMDatabase.data(), SIGNAL(patientAdded(int,QString,QString,QString)), this, SLOT(onPatientAdded(int,QString,QString,QString)));
   connect(d->DICOMDatabase.data(), SIGNAL(studyAdded(QString)), this, SLOT(onStudyAdded(QString)));
   connect(d->DICOMDatabase.data(), SIGNAL(seriesAdded(QString)), this, SLOT(onSeriesAdded(QString)));
   connect(d->DICOMDatabase.data(), SIGNAL(instanceAdded(QString)), this, SLOT(onInstanceAdded(QString)));
@@ -269,6 +261,10 @@ ctkDICOMBrowser::ctkDICOMBrowser(QWidget* _parent):Superclass(_parent),
      this, SLOT(onTablesDensityComboBox(QString)));
 
   connect(d->DirectoryButton, SIGNAL(directoryChanged(QString)), this, SLOT(setDatabaseDirectory(QString)));
+
+  // Signal for display fields update
+  connect(d->DICOMDatabase.data(), SIGNAL(displayFieldsUpdateStarted()), this, SLOT(showUpdateDisplayFieldsDialog()));
+  connect(d->DICOMIndexer.data(), SIGNAL(displayFieldsUpdateStarted()), this, SLOT(showUpdateDisplayFieldsDialog()));
 
   // Set ToolBar button style
   d->ToolBar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
@@ -280,10 +276,10 @@ ctkDICOMBrowser::ctkDICOMBrowser(QWidget* _parent):Superclass(_parent),
   // initialize directory from settings, then listen for changes
   QSettings settings;
   if ( settings.value(Self::databaseDirectorySettingsKey(), "") == "" )
-    {
+  {
     settings.setValue(Self::databaseDirectorySettingsKey(), QString("./ctkDICOM-Database"));
     settings.sync();
-    }
+  }
   QString databaseDirectory = this->databaseDirectory();
   this->setDatabaseDirectory(databaseDirectory);
   databaseDirectory = this->databaseDirectory(); // In case a new database has been created instead of updating schema
@@ -626,19 +622,19 @@ void ctkDICOMBrowser::onRemoveAction()
   QStringList selectedSeriesUIDs = d->dicomTableManager->currentSeriesSelection();
 
   foreach (const QString& uid, selectedSeriesUIDs)
-    {
+  {
       d->DICOMDatabase->removeSeries(uid);
-    }
+  }
   QStringList selectedStudiesUIDs = d->dicomTableManager->currentStudiesSelection();
   foreach (const QString& uid, selectedStudiesUIDs)
-    {
+  {
       d->DICOMDatabase->removeStudy(uid);
-    }
+  }
   QStringList selectedPatientUIDs = d->dicomTableManager->currentPatientsSelection();
   foreach (const QString& uid, selectedPatientUIDs)
-    {
+  {
       d->DICOMDatabase->removePatient(uid);
-    }
+  }
   // Update the table views
   d->dicomTableManager->updateTableViews();
 }
@@ -792,23 +788,23 @@ void ctkDICOMBrowser::importDirectories(QStringList directories, ctkDICOMBrowser
   ctkDICOMImportStats stats(d);
 
   if (!d->DICOMDatabase || !d->DICOMIndexer)
-    {
+  {
     qWarning() << Q_FUNC_INFO << " failed: database or indexer is invalid";
     return;
-    }
+  }
 
   // Only emit one indexingComplete event, when all imports have been completed
   ctkDICOMIndexer::ScopedIndexing indexingBatch(*d->DICOMIndexer, *d->DICOMDatabase);
 
   foreach (const QString& directory, directories)
-    {
+  {
     d->importDirectory(directory, mode);
-    }
+  }
 
   if (d->DisplayImportSummary)
-    {
+  {
     QMessageBox::information(d->ImportDialog,"DICOM Directory Import", stats.summary());
-    }
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -818,9 +814,9 @@ void ctkDICOMBrowser::importDirectory(QString directory, ctkDICOMBrowser::Import
   ctkDICOMImportStats stats(d);
   d->importDirectory(directory, mode);
   if (d->DisplayImportSummary)
-    {
+  {
     QMessageBox::information(d->ImportDialog,"DICOM Directory Import", stats.summary());
-    }
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -833,15 +829,15 @@ void ctkDICOMBrowser::onImportDirectory(QString directory, ctkDICOMBrowser::Impo
 void ctkDICOMBrowserPrivate::importDirectory(QString directory, ctkDICOMBrowser::ImportDirectoryMode mode)
 {
   if (!QDir(directory).exists())
-    {
+  {
     return;
-    }
+  }
 
   QString targetDirectory;
   if (mode == ctkDICOMBrowser::ImportDirectoryCopy)
-    {
+  {
     targetDirectory = this->DICOMDatabase->databaseDirectory();
-    }
+  }
 
   // show progress dialog and perform indexing
   this->showIndexerDialog();
@@ -855,9 +851,9 @@ void ctkDICOMBrowserPrivate::importOldSettings()
   QSettings settings;
   int dontConfirmCopyOnImport = settings.value("MainWindow/DontConfirmCopyOnImport", static_cast<int>(QMessageBox::InvalidRole)).toInt();
   if (dontConfirmCopyOnImport == QMessageBox::AcceptRole)
-    {
+  {
     settings.setValue("DICOM/ImportDirectoryMode", static_cast<int>(ctkDICOMBrowser::ImportDirectoryCopy));
-    }
+  }
   settings.remove("MainWindow/DontConfirmCopyOnImport");
 }
 
@@ -887,9 +883,9 @@ void ctkDICOMBrowser::setImportDirectoryMode(ctkDICOMBrowser::ImportDirectoryMod
   QSettings settings;
   settings.setValue("DICOM/ImportDirectoryMode", static_cast<int>(mode));
   if (!d->ImportDialog)
-    {
+  {
     return;
-    }
+  }
   QComboBox* comboBox = d->ImportDialog->bottomWidget()->findChild<QComboBox*>();
   comboBox->setCurrentIndex(comboBox->findData(mode));
 }
@@ -927,9 +923,9 @@ bool ctkDICOMBrowser::confirmDeleteSelectedUIDs(QStringList uids)
   Q_D(ctkDICOMBrowser);
 
   if (uids.isEmpty())
-    {
+  {
     return false;
-    }
+  }
 
   ctkMessageBox confirmDeleteDialog;
   QString message("Do you want to delete the following selected items?");
@@ -937,7 +933,7 @@ bool ctkDICOMBrowser::confirmDeleteSelectedUIDs(QStringList uids)
   // add the information about the selected UIDs
   int numUIDs = uids.size();
   for (int i = 0; i < numUIDs; ++i)
-    {
+  {
     QString uid = uids.at(i);
 
     // try using the given UID to find a descriptive string
@@ -946,24 +942,23 @@ bool ctkDICOMBrowser::confirmDeleteSelectedUIDs(QStringList uids)
     QString seriesDescription = d->DICOMDatabase->descriptionForSeries(uid);
 
     if (!patientName.isEmpty())
-      {
+    {
       message += QString("\n") + patientName;
-      }
+    }
     else if (!studyDescription.isEmpty())
-      {
+    {
       message += QString("\n") + studyDescription;
-      }
+    }
     else if (!seriesDescription.isEmpty())
-      {
+    {
       message += QString("\n") + seriesDescription;
-      }
+    }
     else
-      {
+    {
       // if all other descriptors are empty, use the UID
       message += QString("\n") + uid;
-      }
-
     }
+  }
   confirmDeleteDialog.setText(message);
   confirmDeleteDialog.setIcon(QMessageBox::Question);
 
@@ -974,13 +969,13 @@ bool ctkDICOMBrowser::confirmDeleteSelectedUIDs(QStringList uids)
   int response = confirmDeleteDialog.exec();
 
   if (response == QMessageBox::AcceptRole)
-    {
+  {
     return true;
-    }
+  }
   else
-    {
+  {
     return false;
-    }
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -992,10 +987,10 @@ void ctkDICOMBrowser::onPatientsRightClicked(const QPoint &point)
   QStringList selectedPatientsUIDs = d->dicomTableManager->currentPatientsSelection();
   int numPatients = selectedPatientsUIDs.size();
   if (numPatients == 0)
-    {
+  {
     qDebug() << "No patients selected!";
     return;
-    }
+  }
 
   QMenu *patientsMenu = new QMenu(d->dicomTableManager);
 
@@ -1019,29 +1014,29 @@ void ctkDICOMBrowser::onPatientsRightClicked(const QPoint &point)
 
   if (selectedAction == deleteAction
       && this->confirmDeleteSelectedUIDs(selectedPatientsUIDs))
-    {
+  {
     qDebug() << "Deleting " << numPatients << " patients";
     foreach (const QString& uid, selectedPatientsUIDs)
-      {
+    {
       d->DICOMDatabase->removePatient(uid);
       d->dicomTableManager->updateTableViews();
-      }
     }
+  }
   else if (selectedAction == exportAction)
-    {
+  {
     ctkFileDialog* directoryDialog = new ctkFileDialog();
     directoryDialog->setOption(QFileDialog::DontUseNativeDialog);
     directoryDialog->setOption(QFileDialog::ShowDirsOnly);
     directoryDialog->setFileMode(QFileDialog::DirectoryOnly);
     bool res = directoryDialog->exec();
     if (res)
-      {
+    {
       QStringList dirs = directoryDialog->selectedFiles();
       QString dirPath = dirs[0];
       this->exportSelectedPatients(dirPath, selectedPatientsUIDs);
-      }
-    delete directoryDialog;
     }
+    delete directoryDialog;
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -1053,10 +1048,10 @@ void ctkDICOMBrowser::onStudiesRightClicked(const QPoint &point)
   QStringList selectedStudiesUIDs = d->dicomTableManager->currentStudiesSelection();
   int numStudies = selectedStudiesUIDs.size();
   if (numStudies == 0)
-    {
+  {
     qDebug() << "No studies selected!";
     return;
-    }
+  }
 
   QMenu *studiesMenu = new QMenu(d->dicomTableManager);
 
@@ -1080,28 +1075,28 @@ void ctkDICOMBrowser::onStudiesRightClicked(const QPoint &point)
 
   if (selectedAction == deleteAction
       && this->confirmDeleteSelectedUIDs(selectedStudiesUIDs))
-    {
+  {
     foreach (const QString& uid, selectedStudiesUIDs)
-      {
+    {
       d->DICOMDatabase->removeStudy(uid);
       d->dicomTableManager->updateTableViews();
-      }
     }
+  }
   else if (selectedAction == exportAction)
-    {
+  {
     ctkFileDialog* directoryDialog = new ctkFileDialog();
     directoryDialog->setOption(QFileDialog::DontUseNativeDialog);
     directoryDialog->setOption(QFileDialog::ShowDirsOnly);
     directoryDialog->setFileMode(QFileDialog::DirectoryOnly);
     bool res = directoryDialog->exec();
     if (res)
-      {
+    {
       QStringList dirs = directoryDialog->selectedFiles();
       QString dirPath = dirs[0];
       this->exportSelectedStudies(dirPath, selectedStudiesUIDs);
-      }
-    delete directoryDialog;
     }
+    delete directoryDialog;
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -1113,10 +1108,10 @@ void ctkDICOMBrowser::onSeriesRightClicked(const QPoint &point)
   QStringList selectedSeriesUIDs = d->dicomTableManager->currentSeriesSelection();
   int numSeries = selectedSeriesUIDs.size();
   if (numSeries == 0)
-    {
+  {
     qDebug() << "No series selected!";
     return;
-    }
+  }
 
   QMenu *seriesMenu = new QMenu(d->dicomTableManager);
 
@@ -1139,28 +1134,28 @@ void ctkDICOMBrowser::onSeriesRightClicked(const QPoint &point)
 
   if (selectedAction == deleteAction
       && this->confirmDeleteSelectedUIDs(selectedSeriesUIDs))
-    {
+  {
     foreach (const QString& uid, selectedSeriesUIDs)
-      {
+    {
       d->DICOMDatabase->removeSeries(uid);
       d->dicomTableManager->updateTableViews();
-      }
     }
+  }
   else if (selectedAction == exportAction)
-    {
+  {
     ctkFileDialog* directoryDialog = new ctkFileDialog();
     directoryDialog->setOption(QFileDialog::DontUseNativeDialog);
     directoryDialog->setOption(QFileDialog::ShowDirsOnly);
     directoryDialog->setFileMode(QFileDialog::DirectoryOnly);
     bool res = directoryDialog->exec();
     if (res)
-      {
+    {
       QStringList dirs = directoryDialog->selectedFiles();
       QString dirPath = dirs[0];
       this->exportSelectedSeries(dirPath, selectedSeriesUIDs);
-      }
-    delete directoryDialog;
     }
+    delete directoryDialog;
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -1169,7 +1164,7 @@ void ctkDICOMBrowser::exportSelectedSeries(QString dirPath, QStringList uids)
   Q_D(ctkDICOMBrowser);
 
   foreach (const QString& uid, uids)
-    {
+  {
     QStringList filesForSeries = d->DICOMDatabase->filesForSeries(uid);
 
     // Use the first file to get the overall series information
@@ -1189,19 +1184,19 @@ void ctkDICOMBrowser::exportSelectedSeries(QString dirPath, QStringList uids)
     QString nameSep = "-";
     QString destinationDir = dirPath + sep + patientID;
     if (!patientName.isEmpty())
-      {
+    {
       destinationDir += nameSep + patientName;
-      }
+    }
     destinationDir += sep + studyDate;
     if (!studyDescription.isEmpty())
-      {
+    {
       destinationDir += nameSep + studyDescription;
-      }
+    }
     destinationDir += sep + seriesNumber;
     if (!seriesDescription.isEmpty())
-      {
+    {
       destinationDir += nameSep + seriesDescription;
-      }
+    }
     destinationDir += sep;
 
     // make sure only ascii characters are in the directory path
@@ -1212,9 +1207,9 @@ void ctkDICOMBrowser::exportSelectedSeries(QString dirPath, QStringList uids)
 
     // create the destination directory if necessary
     if (!QDir().exists(destinationDir))
-      {
+    {
       if (!QDir().mkpath(destinationDir))
-        {
+      {
         QString errorString =
           QString("Unable to create export destination directory:\n\n")
           + destinationDir
@@ -1224,16 +1219,16 @@ void ctkDICOMBrowser::exportSelectedSeries(QString dirPath, QStringList uids)
         createDirectoryErrorMessageBox.setIcon(QMessageBox::Warning);
         createDirectoryErrorMessageBox.exec();
         return;
-        }
       }
+    }
 
     // show progress
     if (d->ExportProgress == 0)
-      {
+    {
       d->ExportProgress = new QProgressDialog(this->tr("DICOM Export"), "Close", 0, 100, this, Qt::WindowTitleHint | Qt::WindowSystemMenuHint);
       d->ExportProgress->setWindowModality(Qt::ApplicationModal);
       d->ExportProgress->setMinimumDuration(0);
-      }
+    }
     QLabel *exportLabel = new QLabel(this->tr("Exporting series ") + seriesNumber);
     d->ExportProgress->setLabel(exportLabel);
     d->ExportProgress->setValue(0);
@@ -1242,7 +1237,7 @@ void ctkDICOMBrowser::exportSelectedSeries(QString dirPath, QStringList uids)
     int numFiles = filesForSeries.size();
     d->ExportProgress->setMaximum(numFiles);
     foreach (const QString& filePath, filesForSeries)
-      {
+    {
       QString destinationFileName = destinationDir;
 
       QString fileNumberString;
@@ -1258,7 +1253,7 @@ void ctkDICOMBrowser::exportSelectedSeries(QString dirPath, QStringList uids)
       destinationFileName.replace("?", "_");
 
       if (!QFile::exists(filePath))
-        {
+      {
         d->ExportProgress->setValue(numFiles);
         QString errorString = QString("Export source file not found:\n\n")
           + filePath
@@ -1270,7 +1265,7 @@ void ctkDICOMBrowser::exportSelectedSeries(QString dirPath, QStringList uids)
         return;
       }
       if (QFile::exists(destinationFileName))
-        {
+      {
         d->ExportProgress->setValue(numFiles);
         QString errorString = QString("Export destination file already exists:\n\n")
           + destinationFileName
@@ -1280,11 +1275,11 @@ void ctkDICOMBrowser::exportSelectedSeries(QString dirPath, QStringList uids)
         copyErrorMessageBox.setIcon(QMessageBox::Warning);
         copyErrorMessageBox.exec();
         return;
-        }
+      }
 
       bool copyResult = QFile::copy(filePath, destinationFileName);
       if (!copyResult)
-        {
+      {
         d->ExportProgress->setValue(numFiles);
         QString errorString = QString("Failed to copy\n\n")
           + filePath
@@ -1300,9 +1295,9 @@ void ctkDICOMBrowser::exportSelectedSeries(QString dirPath, QStringList uids)
 
       fileNumber++;
       d->ExportProgress->setValue(fileNumber);
-      }
-    d->ExportProgress->setValue(numFiles);
     }
+    d->ExportProgress->setValue(numFiles);
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -1311,10 +1306,10 @@ void ctkDICOMBrowser::exportSelectedStudies(QString dirPath, QStringList uids)
   Q_D(ctkDICOMBrowser);
 
   foreach (const QString& uid, uids)
-    {
+  {
     QStringList seriesUIDs = d->DICOMDatabase->seriesForStudy(uid);
     this->exportSelectedSeries(dirPath, seriesUIDs);
-    }
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -1323,8 +1318,33 @@ void ctkDICOMBrowser::exportSelectedPatients(QString dirPath, QStringList uids)
   Q_D(ctkDICOMBrowser);
 
   foreach (const QString& uid, uids)
-    {
+  {
     QStringList studiesUIDs = d->DICOMDatabase->studiesForPatient(uid);
     this->exportSelectedStudies(dirPath, studiesUIDs);
-    }
+  }
+}
+
+//----------------------------------------------------------------------------
+void ctkDICOMBrowser::showUpdateDisplayFieldsDialog()
+{
+  Q_D(ctkDICOMBrowser);
+  if (d->UpdateDisplayFieldsProgress == 0)
+  {
+    //
+    // Set up the Update Schema Progress Dialog
+    //
+    d->UpdateDisplayFieldsProgress = new QProgressDialog(this, Qt::WindowTitleHint | Qt::WindowSystemMenuHint);
+
+    // We don't want the progress dialog to resize itself, so we bypass the label by creating our own
+    d->UpdateDisplayFieldsProgress->setLabelText("Updating database display fields...");
+    d->UpdateDisplayFieldsProgress->setWindowModality(Qt::ApplicationModal);
+    d->UpdateDisplayFieldsProgress->setMinimumDuration(0);
+    d->UpdateDisplayFieldsProgress->setMaximum(5);
+    d->UpdateDisplayFieldsProgress->setValue(0);
+
+    connect(d->DICOMDatabase.data(), SIGNAL(displayFieldsUpdateProgress(int)), d->UpdateDisplayFieldsProgress, SLOT(setValue(int)));
+    connect(d->DICOMDatabase.data(), SIGNAL(displayFieldsUpdated()), d->UpdateDisplayFieldsProgress, SLOT(close()));
+  }
+  d->UpdateDisplayFieldsProgress->show();
+  QApplication::processEvents();
 }

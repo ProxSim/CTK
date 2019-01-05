@@ -194,6 +194,9 @@ public Q_SLOTS:
   void onSeriesAdded(QString);
   void onInstanceAdded(QString);
 
+  /// Show progress dialog for update display fields
+  void showUpdateDisplayFieldsDialog();
+
 Q_SIGNALS:
   /// Emitted when directory is changed
   void databaseDirectoryChanged(const QString&);

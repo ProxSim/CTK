@@ -1399,12 +1399,14 @@ bool ctkDICOMDatabase::updateSchema(const char* schemaFile/* = ":/dicom/dicom-sc
     progressValue++;
   }
 
+  emit schemaUpdated();
+
   // Update displayed fields in the updated database
+  emit displayFieldsUpdateStarted();
   this->updateDisplayedFields();
 
   // TODO: check better that everything is ok
   d->removeBackupFileList();
-  emit schemaUpdated();
   return true;
 }
 
@@ -2319,7 +2321,7 @@ void ctkDICOMDatabase::updateDisplayedFields()
   Q_D(ctkDICOMDatabase);
 
   // Get the files for which the display fields have not been created yet (DisplayedFieldsUpdatedTimestamp is NULL)
-  //TODO: handle cases when the values actually changed; now we only do insertion in the database
+  //TODO: handle cases when the values actually changed; now we only cover insertion and schema update
   QSqlQuery newFilesQuery(d->Database);
   d->loggedExec(newFilesQuery,QString("SELECT SOPInstanceUID, SeriesInstanceUID FROM Images WHERE DisplayedFieldsUpdatedTimestamp IS NULL;"));
 
@@ -2329,6 +2331,9 @@ void ctkDICOMDatabase::updateDisplayedFields()
   QVector<QMap<QString /*DisplayField*/, QString /*Value*/> > displayFieldsVectorPatient; // The index in the vector is the internal patient UID
 
   d->DisplayedFieldGenerator.setDatabase(this);
+
+  int progressValue = 0;
+  emit displayFieldsUpdateProgress(++progressValue);
 
   // Get display names for newly added files and add them into the display tables
   while (newFilesQuery.next())
@@ -2383,12 +2388,19 @@ void ctkDICOMDatabase::updateDisplayedFields()
     displayFieldsVectorPatient[ displayFieldsIndexForCurrentPatient ] = displayFieldsForCurrentPatient;
   } // For each instance
 
+  emit displayFieldsUpdateProgress(++progressValue);
+
   // Calculate number of images in each updated series
   d->setNumberOfImagesToSeriesDisplayFields(displayFieldsMapSeries);
+
+  emit displayFieldsUpdateProgress(++progressValue);
+
   // Calculate number of series in each updated study
   d->setNumberOfSeriesToStudyDisplayFields(displayFieldsMapStudy);
   // Calculate number of studies in each updated patient
   d->setNumberOfStudiesToPatientDisplayFields(displayFieldsVectorPatient);
+
+  emit displayFieldsUpdateProgress(++progressValue);
 
   // Update/insert the display values
   if (displayFieldsMapSeries.count() > 0)
@@ -2416,6 +2428,7 @@ void ctkDICOMDatabase::updateDisplayedFields()
     transaction.exec();
   }
 
+  emit displayFieldsUpdated();
   emit databaseChanged();
 }
 
