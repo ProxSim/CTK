@@ -298,15 +298,24 @@ Q_SIGNALS:
   /// instanceAdded arguments:
   ///  - instanceUID (unique)
   void instanceAdded(QString);
-  /// Indicates that an in-memory database has been updated
+
+  /// Indicate that an in-memory database has been updated
   void databaseChanged();
-  /// Indicates that the schema is about to be updated and how many files will be processed
+
+  /// Indicate that the schema is about to be updated and how many files will be processed
   void schemaUpdateStarted(int);
-  /// Indicates progress in updating schema (int is file number, string is file name)
+  /// Indicate progress in updating schema (int is file number, string is file name)
   void schemaUpdateProgress(int);
   void schemaUpdateProgress(QString);
-  /// Indicates schema update finished
+  /// Indicate schema update finished
   void schemaUpdated();
+
+  /// Trigger showing progress dialog for display fields update
+  void displayFieldsUpdateStarted();
+  /// Indicate progress in updating display fields (int is step number)
+  void displayFieldsUpdateProgress(int);
+  /// Indicate display fields update finished
+  void displayFieldsUpdated();
 
 protected:
   QScopedPointer<ctkDICOMDatabasePrivate> d_ptr;

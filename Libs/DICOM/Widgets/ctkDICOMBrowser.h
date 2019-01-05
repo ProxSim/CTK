@@ -125,6 +125,10 @@ public:
     NeverUpdate,
     AskUser
   };
+  /// Get \sa SchemaUpdateOption enum from string
+  static ctkDICOMBrowser::SchemaUpdateOption schemaUpdateOptionFromString(QString option);
+  /// Get string from \sa SchemaUpdateOption enum
+  static QString schemaUpdateOptionToString(ctkDICOMBrowser::SchemaUpdateOption option);
 
   /// Get schema update option (whether to update automatically). Default is always update
   /// \sa setSchemaUpdateOption
@@ -193,6 +197,9 @@ public Q_SLOTS:
   void onStudyAdded(QString);
   void onSeriesAdded(QString);
   void onInstanceAdded(QString);
+
+  /// Show progress dialog for update display fields
+  void showUpdateDisplayFieldsDialog();
 
 Q_SIGNALS:
   /// Emitted when directory is changed
