@@ -124,7 +124,7 @@ public:
   * @brief Get the actual QTableView, for specific view settings
   * @return a pointer to QTableView* tblDicomDatabaseView
   */
-  QTableView* tableView();
+  Q_INVOKABLE QTableView* tableView();
 
 public Q_SLOTS:
 

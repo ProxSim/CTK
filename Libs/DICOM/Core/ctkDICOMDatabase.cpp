@@ -1399,14 +1399,13 @@ bool ctkDICOMDatabase::updateSchema(const char* schemaFile/* = ":/dicom/dicom-sc
     progressValue++;
   }
 
-  emit schemaUpdated();
-
   // Update displayed fields in the updated database
   emit displayFieldsUpdateStarted();
   this->updateDisplayedFields();
 
   // TODO: check better that everything is ok
   d->removeBackupFileList();
+  emit schemaUpdated();
   return true;
 }
 
