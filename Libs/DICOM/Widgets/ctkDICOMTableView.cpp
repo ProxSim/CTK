@@ -194,6 +194,7 @@ void ctkDICOMTableViewPrivate::applyColumnProperties()
 
   // First restore original order of the columns so that it can be sorted by weights (use bubble sort).
   // This extra complexity is needed because the only mechanism for column order is by moving or swapping
+  bool wasBlocked = header->blockSignals(true);
   if (!visualIndexToColumnIndexMap.isEmpty())
   {
     QList<int> columnIndicesByVisualIndex = visualIndexToColumnIndexMap.values();
@@ -223,6 +224,8 @@ void ctkDICOMTableViewPrivate::applyColumnProperties()
       }
     }
   }
+  header->blockSignals(wasBlocked);
+  header->updateGeometry();
 }
 
 
