@@ -365,6 +365,22 @@ void ctkDICOMTableView::selectAll()
 }
 
 //------------------------------------------------------------------------------
+void ctkDICOMTableView::selectFirst()
+{
+  Q_D(ctkDICOMTableView);
+  QModelIndex firstIndex = d->tblDicomDatabaseView->model()->index(0,0);
+  QItemSelectionModel* selectionModel = d->tblDicomDatabaseView->selectionModel();
+  selectionModel->setCurrentIndex(firstIndex, QItemSelectionModel::Select | QItemSelectionModel::Rows);
+}
+
+//------------------------------------------------------------------------------
+void ctkDICOMTableView::clearSelection()
+{
+  Q_D(ctkDICOMTableView);
+  d->tblDicomDatabaseView->clearSelection();
+}
+
+//------------------------------------------------------------------------------
 bool ctkDICOMTableView::eventFilter(QObject *obj, QEvent *event)
 {
   Q_D(ctkDICOMTableView);
