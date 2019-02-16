@@ -65,6 +65,7 @@ class CTK_DICOM_WIDGETS_EXPORT ctkDICOMBrowser : public QWidget
   Q_PROPERTY(bool displayImportSummary READ displayImportSummary WRITE setDisplayImportSummary)
   Q_PROPERTY(ctkDICOMBrowser::ImportDirectoryMode ImportDirectoryMode READ importDirectoryMode WRITE setImportDirectoryMode)
   Q_PROPERTY(SchemaUpdateOption schemaUpdateOption READ schemaUpdateOption WRITE setSchemaUpdateOption)
+  Q_PROPERTY(bool confirmRemove READ confirmRemove WRITE setConfirmRemove)
 
 public:
   typedef ctkDICOMBrowser Self;
@@ -97,10 +98,12 @@ public:
   Q_INVOKABLE ctkDICOMTableManager* dicomTableManager();
 
   /// Option to show or not import summary dialog.
-  /// Since the summary dialog is modal, we give the option
-  /// of disabling it for batch modes or testing.
+  /// Since the summary dialog is modal, we give the option of disabling it for batch modes or testing.
   void setDisplayImportSummary(bool);
   bool displayImportSummary();
+  /// Option to show dialog to confirm removal from the database (Remove action).
+  void setConfirmRemove(bool);
+  bool confirmRemove();
   /// Accessors to status of last directory import operation
   int patientsAddedDuringImport();
   int studiesAddedDuringImport();
