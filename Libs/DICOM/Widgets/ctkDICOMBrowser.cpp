@@ -91,9 +91,11 @@ public:
   // used when suspending the ctkDICOMModel
   QSqlDatabase EmptyDatabase;
 
+  bool DisplayImportSummary;
+  bool ConfirmRemove;
+
   // local count variables to keep track of the number of items
   // added to the database during an import operation
-  bool DisplayImportSummary;
   int PatientsAddedDuringImport;
   int StudiesAddedDuringImport;
   int SeriesAddedDuringImport;
@@ -144,6 +146,7 @@ ctkDICOMBrowserPrivate::ctkDICOMBrowserPrivate(ctkDICOMBrowser* parent): q_ptr(p
   UpdateDisplayFieldsProgress = 0;
   ExportProgress = 0;
   DisplayImportSummary = true;
+  ConfirmRemove = false;
   PatientsAddedDuringImport = 0;
   StudiesAddedDuringImport = 0;
   SeriesAddedDuringImport = 0;
@@ -364,6 +367,22 @@ void ctkDICOMBrowser::setDisplayImportSummary(bool onOff)
   Q_D(ctkDICOMBrowser);
 
   d->DisplayImportSummary = onOff;
+}
+
+//----------------------------------------------------------------------------
+bool ctkDICOMBrowser::confirmRemove()
+{
+  Q_D(ctkDICOMBrowser);
+
+  return d->ConfirmRemove;
+}
+
+//----------------------------------------------------------------------------
+void ctkDICOMBrowser::setConfirmRemove(bool onOff)
+{
+  Q_D(ctkDICOMBrowser);
+
+  d->ConfirmRemove = onOff;
 }
 
 //----------------------------------------------------------------------------
@@ -619,21 +638,28 @@ void ctkDICOMBrowser::onQueryRetrieveFinished()
 void ctkDICOMBrowser::onRemoveAction()
 {
   Q_D(ctkDICOMBrowser);
-  QStringList selectedSeriesUIDs = d->dicomTableManager->currentSeriesSelection();
 
+  QStringList selectedPatientUIDs = d->dicomTableManager->currentPatientsSelection();
+
+  // Confirm removal if needed. Note that this function always removes the patient
+  if (d->ConfirmRemove && !this->confirmDeleteSelectedUIDs(selectedPatientUIDs))
+  {
+    return;
+  }
+
+  QStringList selectedSeriesUIDs = d->dicomTableManager->currentSeriesSelection();
   foreach (const QString& uid, selectedSeriesUIDs)
   {
-      d->DICOMDatabase->removeSeries(uid);
+    d->DICOMDatabase->removeSeries(uid);
   }
   QStringList selectedStudiesUIDs = d->dicomTableManager->currentStudiesSelection();
   foreach (const QString& uid, selectedStudiesUIDs)
   {
-      d->DICOMDatabase->removeStudy(uid);
+    d->DICOMDatabase->removeStudy(uid);
   }
-  QStringList selectedPatientUIDs = d->dicomTableManager->currentPatientsSelection();
   foreach (const QString& uid, selectedPatientUIDs)
   {
-      d->DICOMDatabase->removePatient(uid);
+    d->DICOMDatabase->removePatient(uid);
   }
   // Update the table views
   d->dicomTableManager->updateTableViews();
